@@ -1,0 +1,7 @@
+# Keep project skills/commands visible. Cursor inherits .gitignore, and this
+# repo ignores /build (Next.js output). Un-ignore the skill paths explicitly.
+!.cursor/
+!.cursor/skills/
+!.cursor/skills/**
+!.cursor/commands/
+!.cursor/commands/**
