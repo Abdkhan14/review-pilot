@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import { layoutClass } from "./tokens";
 
 export const metadata: Metadata = {
   title: "Review Pilot",
@@ -9,7 +10,9 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body className={layoutClass.body}>
+        <div className={layoutClass.column}>{children}</div>
+      </body>
     </html>
   );
 }
