@@ -1,7 +1,7 @@
 import "server-only";
 import { PrismaClient } from "@prisma/client";
 import { createClient } from "@libsql/client";
-import { PrismaLibSQL } from "@prisma/adapter-libsql";
+import { PrismaLibSql } from "@prisma/adapter-libsql";
 import { resolveDbTarget } from "./db-target";
 
 function createPrismaClient(): PrismaClient {
@@ -9,7 +9,7 @@ function createPrismaClient(): PrismaClient {
 
   if (target.kind === "turso") {
     const libsql = createClient({ url: target.url, authToken: target.token });
-    const adapter = new PrismaLibSQL(libsql);
+    const adapter = new PrismaLibSql(libsql);
     return new PrismaClient({ adapter } as ConstructorParameters<typeof PrismaClient>[0]);
   }
 
