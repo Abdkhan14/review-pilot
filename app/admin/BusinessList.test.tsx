@@ -6,8 +6,8 @@ afterEach(() => cleanup());
 import { BusinessList } from "./BusinessList";
 
 const fixtures = [
-  { name: "Joe's Pizza", tier: "BASIC", slug: "joes-pizza-ab12" },
-  { name: "Mike's Salon", tier: "SAAS", slug: "mikes-salon-cd34" },
+  { id: "cuid-1", name: "Joe's Pizza", tier: "BASIC", slug: "joes-pizza-ab12" },
+  { id: "cuid-2", name: "Mike's Salon", tier: "SAAS", slug: "mikes-salon-cd34" },
 ];
 
 describe("BusinessList", () => {
