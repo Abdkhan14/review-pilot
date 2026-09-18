@@ -2,7 +2,7 @@ import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { execSync } from "child_process";
 import { PrismaClient } from "@prisma/client";
 import { rmSync } from "fs";
-import { create, findBySlug, list } from "./business-repo";
+import { create, findById, findBySlug, list, update } from "./business-repo";
 
 const DB_PATH = `./prisma/test-business-${Date.now()}.db`;
 const DB_URL = `file:${DB_PATH}`;
@@ -71,5 +71,59 @@ describe("list after inserts", () => {
     // We created 2 businesses above (Joe's Pizza + Mike's Diner)
     expect(rows.length).toBe(2);
     expect(rows[0].name).toBe("Mike's Diner"); // newest first
+  });
+});
+
+describe("findById", () => {
+  it("returns the row matching the id", async () => {
+    const biz = await create(db, {
+      name: "FindById Shop",
+      placeId: "ChIJfindbyid",
+      tier: "BASIC",
+    });
+    const found = await findById(db, biz.id);
+    expect(found).not.toBeNull();
+    expect(found!.name).toBe("FindById Shop");
+  });
+
+  it("returns null for an unknown id", async () => {
+    const found = await findById(db, "nonexistent-cuid-00000000");
+    expect(found).toBeNull();
+  });
+});
+
+describe("update", () => {
+  it("updates tier and customInstructions without changing the slug", async () => {
+    const biz = await create(db, {
+      name: "Update Shop",
+      placeId: "ChIJupdate",
+      tier: "BASIC",
+    });
+    const originalSlug = biz.slug;
+
+    const updated = await update(db, biz.id, {
+      tier: "SAAS",
+      customInstructions: "mention the daily special",
+    });
+
+    expect(updated.tier).toBe("SAAS");
+    expect(updated.customInstructions).toBe("mention the daily special");
+    expect(updated.slug).toBe(originalSlug); // slug must never change
+  });
+
+  it("clears customInstructions when set to null", async () => {
+    const biz = await create(db, {
+      name: "Clear Notes Shop",
+      placeId: "ChIJclear",
+      tier: "SAAS",
+      customInstructions: "some notes",
+    });
+
+    const updated = await update(db, biz.id, {
+      tier: "SAAS",
+      customInstructions: null,
+    });
+
+    expect(updated.customInstructions).toBeNull();
   });
 });

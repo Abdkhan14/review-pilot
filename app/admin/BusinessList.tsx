@@ -1,6 +1,8 @@
+import Link from "next/link";
 import { tokens } from "@/app/tokens";
 
 type BusinessRow = {
+  id: string;
   name: string;
   tier: string;
   slug: string;
@@ -16,7 +18,12 @@ export function BusinessList({ businesses }: Props) {
       {businesses.map((biz) => (
         <li key={biz.slug} className="py-4">
           <div className="flex items-center justify-between gap-4">
-            <span className="font-medium">{biz.name}</span>
+            <Link
+              href={`/admin/businesses/${biz.id}`}
+              className="font-medium hover:underline"
+            >
+              {biz.name}
+            </Link>
             <span className={`text-xs border ${tokens.border} px-2 py-0.5`}>
               {biz.tier}
             </span>
