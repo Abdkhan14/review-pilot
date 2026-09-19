@@ -22,7 +22,6 @@ export default async function EditBusinessPage({
   return (
     <main className="px-4 pt-16">
       <h1 className="text-xl font-semibold">Edit business</h1>
-      <QrPanel id={business.id} slug={business.slug} svg={svg} />
       <EditBusinessForm
         id={business.id}
         name={business.name}
@@ -30,6 +29,7 @@ export default async function EditBusinessPage({
         initialTier={business.tier as "BASIC" | "SAAS"}
         initialCustomInstructions={business.customInstructions ?? null}
       />
+      <QrPanel id={business.id} slug={business.slug} svg={svg} />
     </main>
   );
 }

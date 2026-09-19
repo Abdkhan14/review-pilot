@@ -9,7 +9,7 @@ type Props = {
 
 export default function QrPanel({ id, slug, svg }: Props) {
   return (
-    <section className={`mt-8 border ${tokens.border} p-4`}>
+    <section className={`mb-8 border ${tokens.border} p-4`}>
       {/* Inline SVG fills the full column width for a large, scannable preview */}
       <div
         className="w-full"
