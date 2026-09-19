@@ -87,6 +87,8 @@ Do NOT also:
 
 The next PR will import this helper from the route that needs it.
 
+Note: `buildPublicUrl` is worth extracting because multiple callers will use it. A page-only `if (!row) notFound(); if (BASIC) redirect(...)` is **not** worth a new `lib/` file — keep it in the page.
+
 ---
 
 ## Example 2: Auth Primitives — Signed Cookie (no HTTP yet)

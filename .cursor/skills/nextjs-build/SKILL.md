@@ -21,7 +21,9 @@ Follow every step in order. Do not skip.
    the change is too big — stop and narrow scope.
 4. **Write the test first** (or alongside the code in the same commit/PR).
 5. **Write the smallest code that makes it pass.** Reuse existing modules.
-   Extract a pure function rather than stuffing logic into a `page` or `route`.
+   Extract a pure function to `lib/` when a second caller exists or is named in a later ticket, or when the code is shared URL/DB/vendor/crypto construction.
+   Leave page-local control flow (`if (!row) notFound()`, `if (BASIC) redirect(...)`) in the page.
+   Do not invent a helper whose only consumer is the page that would have had the `if`s, just to make Vitest importable.
 6. **Run `npm test`.** Fix until green.
 7. **Self-check** (see end of this file). Do not start the next feature.
 
@@ -275,6 +277,7 @@ One line each. Examples use generic names.
 | `useEffect` copying props to state | `useEffect(() => setState(prop), [prop])` | Use the prop directly |
 | Client fetch of vendor | `fetch("/api/vendor")` when RSC can call lib | Call `lib/vendor.ts` from Server Component |
 | Changing a public identifier after create | Updating a slug/key used in printed artifacts | Slugs and external identifiers are immutable |
+| One-caller `lib/` helper | New `lib/*.ts` imported only by one page/route, no named second caller | Inline. Extract when the second call site lands. |
 
 ---
 
@@ -300,6 +303,7 @@ function and unit-testing that.
 ### Core rules
 
 - Extract logic to plain functions. Unit-test those. Pages and routes stay thin.
+- Do not extract *only* to make an async page unit-testable. Test the reusable parts (URL builders, parsers, repo). Page control-flow wiring waits for Playwright.
 - Never call live vendor APIs in CI. Mock `lib/vendor.ts`.
 - DB tests use a temp isolated store created per test suite, not the developer's
   local database file.
@@ -324,4 +328,5 @@ Before pushing, verify:
 - [ ] `params` / `cookies()` / `headers()` are `await`-ed
 - [ ] `proxy.ts` (not `middleware.ts`) used if a request gate was added
 - [ ] At least one test that fails if you revert the change
+- [ ] No new `lib/` file whose only importer is one page/route (inline instead)
 - [ ] No drive-by changes to unrelated files
