@@ -13,11 +13,13 @@ function assertUrl(url: string): void {
   if (!url.trim()) throw new Error("url must not be empty");
 }
 
+// Fixed pixels — send to print shops or embed in Word/Google Docs.
 export async function encodeQrPng(url: string): Promise<Buffer> {
   assertUrl(url);
   return QRCode.toBuffer(url, { ...QR_OPTIONS, type: "png" });
 }
 
+// Vector — scales to any size without blurring; useful for Figma / large banners.
 export async function encodeQrSvg(url: string): Promise<string> {
   assertUrl(url);
   return QRCode.toString(url, { ...QR_OPTIONS, type: "svg" });
