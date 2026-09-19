@@ -1,7 +1,10 @@
 import { notFound } from "next/navigation";
 import { findById } from "@/lib/business-repo";
 import { db } from "@/lib/db";
+import { encodeQrSvg } from "@/lib/encode-qr";
+import { buildScanUrl } from "@/lib/scan-url";
 import EditBusinessForm from "./EditBusinessForm";
+import QrPanel from "./QrPanel";
 
 export default async function EditBusinessPage({
   params,
@@ -12,9 +15,14 @@ export default async function EditBusinessPage({
   const business = await findById(db, id);
   if (!business) notFound();
 
+  const svg = await encodeQrSvg(
+    buildScanUrl(process.env.APP_URL ?? "", business.slug)
+  );
+
   return (
     <main className="px-4 pt-16">
       <h1 className="text-xl font-semibold">Edit business</h1>
+      <QrPanel id={business.id} slug={business.slug} svg={svg} />
       <EditBusinessForm
         id={business.id}
         name={business.name}
