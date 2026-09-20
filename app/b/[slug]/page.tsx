@@ -6,8 +6,6 @@ import { generateDrafts } from "@/lib/generate-drafts";
 import type { PlaceSnapshot } from "@/lib/place-snapshot";
 import type { DraftReview } from "@/lib/generate-drafts";
 import { DraftCard } from "./_components/DraftCard";
-import { layoutClass } from "@/app/tokens";
-
 export default async function ScanPage({
   params,
 }: {
@@ -46,9 +44,9 @@ export default async function ScanPage({
   }
 
   return (
-    <main className={layoutClass.column}>
+    <main className="mx-auto min-h-dvh w-full max-w-md px-4">
       <h1 className="pt-10 pb-6 text-lg font-semibold">
-        How was your visit to {snapshot.name}?
+        Pick a review to share
       </h1>
       <div className="flex flex-col gap-4">
         {drafts.map((draft) => (
