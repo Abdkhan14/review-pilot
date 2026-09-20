@@ -17,6 +17,7 @@ model Business {
   name               String
   placeId            String
   customInstructions String?
+  writeReviewUrl     String?   // googleMapsLinks.writeAReviewUri from Places API (New)
   details            String?   // JSON string of normalized Place Details
   detailsFetchedAt   DateTime?
   createdAt          DateTime  @default(now())

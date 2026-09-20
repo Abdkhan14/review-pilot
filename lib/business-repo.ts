@@ -6,6 +6,9 @@ export type CreateBusinessInput = {
   placeId: string;
   tier: "BASIC" | "SAAS";
   customInstructions?: string;
+  writeReviewUrl?: string;
+  details?: string; // JSON string of normalized PlaceSnapshot
+  detailsFetchedAt?: Date;
 };
 
 export type UpdateBusinessInput = {
