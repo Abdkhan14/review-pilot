@@ -4,6 +4,7 @@ import { findBySlug } from "@/lib/business-repo";
 import { db } from "@/lib/db";
 import { buildPrompt } from "@/lib/prompt-builder";
 import { generateDrafts, GenerationError } from "@/lib/generate-drafts";
+import { ipFromHeaders, rateLimitKey, checkRateLimit } from "@/lib/rate-limit";
 import type { PlaceSnapshot } from "@/lib/place-snapshot";
 
 function snapshotFromBusiness(business: {
@@ -34,6 +35,11 @@ export async function POST(
   const business = await findBySlug(db, slug);
   if (!business) return new NextResponse(null, { status: 404 });
   if (business.tier === "BASIC") return new NextResponse(null, { status: 403 });
+
+  const ip = ipFromHeaders(_req.headers);
+  if (!checkRateLimit(rateLimitKey(ip, slug))) {
+    return NextResponse.json({ error: "rate limited" }, { status: 429 });
+  }
 
   const snapshot = snapshotFromBusiness(business);
 

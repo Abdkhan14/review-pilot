@@ -7,6 +7,7 @@ vi.mock("@/lib/generate-drafts", () => ({ generateDrafts: vi.fn(), GenerationErr
 
 import * as repo from "@/lib/business-repo";
 import * as generateDraftsLib from "@/lib/generate-drafts";
+import { resetRateLimitStore } from "@/lib/rate-limit";
 import { NextRequest } from "next/server";
 import { POST } from "./route";
 
@@ -54,7 +55,10 @@ function makePost(slug: string): Promise<Response> {
 }
 
 describe("POST /api/b/[slug]/generate", () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+    resetRateLimitStore();
+  });
 
   it("returns 404 for an unknown slug", async () => {
     mockFindBySlug.mockResolvedValue(null);
@@ -92,5 +96,19 @@ describe("POST /api/b/[slug]/generate", () => {
     const body = await res.json();
     expect(body).toHaveProperty("error");
     expect(body.error).not.toContain("model returned non-JSON content");
+  });
+
+  it("returns 429 on the 6th request in the window and does not call generateDrafts", async () => {
+    mockFindBySlug.mockResolvedValue(SAAS_BUSINESS as any);
+    mockGenerateDrafts.mockResolvedValue(THREE_DRAFTS);
+    // Exhaust the limit (5 allowed)
+    for (let i = 0; i < 5; i++) {
+      const res = await makePost("joes-pizza-ab12");
+      expect(res.status).toBe(200);
+    }
+    // 6th is rate limited
+    const res = await makePost("joes-pizza-ab12");
+    expect(res.status).toBe(429);
+    expect(mockGenerateDrafts).toHaveBeenCalledTimes(5);
   });
 });
