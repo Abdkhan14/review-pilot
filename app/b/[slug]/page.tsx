@@ -1,9 +1,11 @@
 import { notFound, redirect } from "next/navigation";
+import { headers } from "next/headers";
 import { findBySlug } from "@/lib/business-repo";
 import { db } from "@/lib/db";
 import { buildPrompt } from "@/lib/prompt-builder";
 import { generateDrafts } from "@/lib/generate-drafts";
 import { buildWriteReviewUrl } from "@/lib/write-review-url";
+import { ipFromHeaders, rateLimitKey, checkRateLimit } from "@/lib/rate-limit";
 import type { PlaceSnapshot } from "@/lib/place-snapshot";
 import type { DraftReview } from "@/lib/generate-drafts";
 import { DraftPicker } from "./_components/DraftPicker";
@@ -32,16 +34,20 @@ export default async function ScanPage({
         fetchedAt: "",
       };
 
-  const messages = buildPrompt({
-    snapshot,
-    customInstructions: business.customInstructions ?? undefined,
-  });
+  const ip = ipFromHeaders(await headers());
+  const allowed = checkRateLimit(rateLimitKey(ip, slug));
 
   let drafts: DraftReview[] = [];
-  try {
-    drafts = await generateDrafts(messages);
-  } catch {
-    // Generation failed — render empty; skip still works via DraftPicker.
+  if (allowed) {
+    const messages = buildPrompt({
+      snapshot,
+      customInstructions: business.customInstructions ?? undefined,
+    });
+    try {
+      drafts = await generateDrafts(messages);
+    } catch {
+      // Generation failed — render empty; skip still works via DraftPicker.
+    }
   }
 
   // Fallback so skip is always functional even if writeReviewUrl was never stored.
