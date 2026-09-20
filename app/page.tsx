@@ -30,14 +30,16 @@ export default function Home() {
         <p className="text-xs font-semibold tracking-widest uppercase text-zinc-400 mb-8">
           How it works
         </p>
-        <Image
-          src="/how-it-works.jpg"
-          alt="Three steps: scan a QR code, pick a review, paste it on Google Reviews."
-          width={600}
-          height={900}
-          className="w-full h-auto"
-          priority
-        />
+        <div className="overflow-hidden">
+          <Image
+            src="/how-it-works.jpg"
+            alt="Three steps: scan a QR code, pick a review, paste it on Google Reviews."
+            width={607}
+            height={1024}
+            className="w-full h-auto -mt-8"
+            priority
+          />
+        </div>
       </section>
     </main>
   );
