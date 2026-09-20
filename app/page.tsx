@@ -35,7 +35,7 @@ export default function Home() {
           alt="Three steps: scan a QR code, pick a review, paste it on Google Reviews."
           width={600}
           height={900}
-          className="w-full"
+          className="w-full h-auto"
           priority
         />
       </section>
