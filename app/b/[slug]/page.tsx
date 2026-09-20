@@ -3,9 +3,10 @@ import { findBySlug } from "@/lib/business-repo";
 import { db } from "@/lib/db";
 import { buildPrompt } from "@/lib/prompt-builder";
 import { generateDrafts } from "@/lib/generate-drafts";
+import { buildWriteReviewUrl } from "@/lib/write-review-url";
 import type { PlaceSnapshot } from "@/lib/place-snapshot";
 import type { DraftReview } from "@/lib/generate-drafts";
-import { DraftCard } from "./_components/DraftCard";
+import { DraftPicker } from "./_components/DraftPicker";
 export default async function ScanPage({
   params,
 }: {
@@ -40,19 +41,19 @@ export default async function ScanPage({
   try {
     drafts = await generateDrafts(messages);
   } catch {
-    // Generation failed — render empty; full error copy comes in 9.1.
+    // Generation failed — render empty; skip still works via DraftPicker.
   }
+
+  // Fallback so skip is always functional even if writeReviewUrl was never stored.
+  const googleUrl =
+    business.writeReviewUrl ?? buildWriteReviewUrl(business.placeId);
 
   return (
     <main className="mx-auto min-h-dvh w-full max-w-md px-4">
       <h1 className="pt-10 pb-6 text-lg font-semibold">
         Pick a review to share
       </h1>
-      <div className="flex flex-col gap-4">
-        {drafts.map((draft) => (
-          <DraftCard key={draft.id} text={draft.text} />
-        ))}
-      </div>
+      <DraftPicker drafts={drafts} writeReviewUrl={googleUrl} />
     </main>
   );
 }
