@@ -1,0 +1,24 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// SQLite does not support enums; app code enforces "BASIC" | "SAAS"
+// SQLite does not support Json; details is stored as a JSON string
+
+model Business {
+  id                 String    @id @default(cuid())
+  slug               String    @unique
+  tier               String    // "BASIC" | "SAAS"
+  name               String
+  placeId            String
+  customInstructions String?
+  writeReviewUrl     String?   // googleMapsLinks.writeAReviewUri from Places API (New)
+  details            String?   // JSON string of normalized Place Details
+  detailsFetchedAt   DateTime?
+  createdAt          DateTime  @default(now())
+}
