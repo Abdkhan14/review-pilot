@@ -16,7 +16,7 @@ export default function Home() {
       </p>
 
       {/* Hero */}
-      <section className="mb-20">
+      <section className="mb-10">
         <h1 className="text-4xl font-bold tracking-tight leading-tight text-zinc-900 mb-6">
           Google reviews without the awkward ask.
         </h1>
