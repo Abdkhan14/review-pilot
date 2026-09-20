@@ -1,3 +1,6 @@
+const DEFAULT_LIMIT = 5;
+const DEFAULT_WINDOW_MS = 30_000;
+
 type Entry = { count: number; resetAt: number };
 
 const store = new Map<string, Entry>();
@@ -22,8 +25,8 @@ export function checkRateLimit(
   key: string,
   opts?: { limit?: number; windowMs?: number },
 ): boolean {
-  const limit = opts?.limit ?? 5;
-  const windowMs = opts?.windowMs ?? 30_000;
+  const limit = opts?.limit ?? DEFAULT_LIMIT;
+  const windowMs = opts?.windowMs ?? DEFAULT_WINDOW_MS;
   const now = Date.now();
 
   const entry = store.get(key);
