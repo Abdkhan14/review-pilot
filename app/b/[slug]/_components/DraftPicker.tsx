@@ -21,7 +21,7 @@ export function DraftPicker({ drafts, writeReviewUrl }: Props) {
   const linkLabel = copiedId ? "Go to Google Reviews" : "Skip to Google Reviews";
 
   return (
-    <div className="flex flex-col">
+    <div className="flex flex-col gap-4">
       {visibleDrafts.map((draft) => (
         <DraftCard
           key={draft.id}
