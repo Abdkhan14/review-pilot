@@ -25,10 +25,10 @@ describe("BusinessList", () => {
     expect(screen.getByText("mikes-salon-cd34")).toBeDefined();
   });
 
-  it("renders placeIds", () => {
+  it("renders placeIds with label", () => {
     render(<BusinessList businesses={fixtures} />);
-    expect(screen.getByText("ChIJN1t_pizza")).toBeDefined();
-    expect(screen.getByText("ChIJN1t_salon")).toBeDefined();
+    expect(screen.getByText("Place ID: ChIJN1t_pizza")).toBeDefined();
+    expect(screen.getByText("Place ID: ChIJN1t_salon")).toBeDefined();
   });
 
   it("renders without throwing when the list is empty", () => {

@@ -30,7 +30,7 @@ export function BusinessList({ businesses }: Props) {
             </span>
           </div>
           <div className="mt-1 text-sm text-zinc-500">{biz.slug}</div>
-          <div className="mt-1 text-xs text-zinc-400">{biz.placeId}</div>
+          <div className="mt-1 text-xs text-zinc-400">Place ID: {biz.placeId}</div>
         </li>
       ))}
     </ul>
