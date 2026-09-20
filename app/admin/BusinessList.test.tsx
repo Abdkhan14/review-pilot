@@ -6,8 +6,8 @@ afterEach(() => cleanup());
 import { BusinessList } from "./BusinessList";
 
 const fixtures = [
-  { id: "cuid-1", name: "Joe's Pizza", tier: "BASIC", slug: "joes-pizza-ab12" },
-  { id: "cuid-2", name: "Mike's Salon", tier: "SAAS", slug: "mikes-salon-cd34" },
+  { id: "cuid-1", name: "Joe's Pizza", tier: "BASIC", slug: "joes-pizza-ab12", placeId: "ChIJN1t_pizza" },
+  { id: "cuid-2", name: "Mike's Salon", tier: "SAAS", slug: "mikes-salon-cd34", placeId: "ChIJN1t_salon" },
 ];
 
 describe("BusinessList", () => {
@@ -23,6 +23,12 @@ describe("BusinessList", () => {
     render(<BusinessList businesses={fixtures} />);
     expect(screen.getByText("joes-pizza-ab12")).toBeDefined();
     expect(screen.getByText("mikes-salon-cd34")).toBeDefined();
+  });
+
+  it("renders placeIds", () => {
+    render(<BusinessList businesses={fixtures} />);
+    expect(screen.getByText("ChIJN1t_pizza")).toBeDefined();
+    expect(screen.getByText("ChIJN1t_salon")).toBeDefined();
   });
 
   it("renders without throwing when the list is empty", () => {
