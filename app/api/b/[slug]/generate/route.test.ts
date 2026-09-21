@@ -111,20 +111,29 @@ describe("POST /api/b/[slug]/generate", () => {
     mockGenerateDrafts.mockResolvedValue(THREE_DRAFTS);
     await makePost("joes-pizza-ab12");
 
-    expect(mockBuildPrompt).toHaveBeenCalledWith(
-      expect.objectContaining({
-        assignedItems: expect.arrayContaining([
-          expect.objectContaining({ id: expect.stringMatching(/^[abc]$/) }),
-        ]),
-      }),
-    );
-
     const call = mockBuildPrompt.mock.calls[0][0];
     expect(call.assignedItems).toHaveLength(3);
     const validItems = new Set(["Shawarma", "Mixed Grill", "Hummus", "Falafel", "Mint Tea"]);
     for (const item of call.assignedItems!) {
       expect(validItems.has(item.name)).toBe(true);
     }
+  });
+
+  it("does not pass the full item catalog to buildPrompt — only prose", async () => {
+    const businessWithNotes = {
+      ...SAAS_BUSINESS,
+      customInstructions: "Don't mention wait times.\n\n# Mains\n- Shawarma\n- Mixed Grill\n\n# Sides\n- Hummus",
+    };
+    mockFindBySlug.mockResolvedValue(businessWithNotes as any);
+    mockGenerateDrafts.mockResolvedValue(THREE_DRAFTS);
+    await makePost("joes-pizza-ab12");
+
+    const call = mockBuildPrompt.mock.calls[0][0];
+    // Prose override guidance must be present.
+    expect(call.customInstructions).toContain("Don't mention wait times.");
+    // The raw item list must not be forwarded to the model.
+    expect(call.customInstructions).not.toContain("Shawarma");
+    expect(call.customInstructions).not.toContain("Hummus");
   });
 
   it("passes no assignedItems to buildPrompt when notes have no list items", async () => {
@@ -138,6 +147,8 @@ describe("POST /api/b/[slug]/generate", () => {
 
     const call = mockBuildPrompt.mock.calls[0][0];
     expect(call.assignedItems).toBeUndefined();
+    // Prose-only notes are passed through unchanged.
+    expect(call.customInstructions).toBe("Always mention the open kitchen.");
   });
 
   it("returns 429 on the 6th request in the window and does not call generateDrafts", async () => {
