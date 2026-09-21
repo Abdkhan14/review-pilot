@@ -184,6 +184,10 @@ describe("buildPrompt", () => {
     const text = promptText(buildPrompt({ snapshot: JOES }));
     const matched = RESTAURANT_POOL.filter((a) => text.includes(a));
     expect(matched).toHaveLength(3);
+    expect(text).toMatch(/what to pick from shop notes/i);
+    for (const label of matched) {
+      expect(text).toContain(`${label}:`);
+    }
   });
 
   it("picks exactly 3 angles when primaryType is missing, all from the generic pool", () => {
