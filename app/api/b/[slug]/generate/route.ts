@@ -45,21 +45,30 @@ export async function POST(
 
   const snapshot = snapshotFromBusiness(business);
 
-  const customInstructions = business.customInstructions ?? undefined;
-  const assignedItems: AssignedItem[] | undefined = (() => {
-    if (!customInstructions) return undefined;
-    const catalog = parseCatalog(customInstructions);
+  const rawNotes = business.customInstructions ?? undefined;
+
+  // Parse the catalog once. When items are assignable we send only the prose
+  // to the model — not the full item list — to keep the prompt short and
+  // prevent the model from gravitating to salient catalog entries.
+  let promptNotes: string | undefined = rawNotes;
+  let assignedItems: AssignedItem[] | undefined;
+
+  if (rawNotes) {
+    const catalog = parseCatalog(rawNotes);
     const names = sampleItems(catalog, DRAFT_COUNT);
-    if (names.length === 0) return undefined;
-    return names.map((name, i) => ({
-      id: String.fromCharCode(97 + i) as AssignedItem["id"],
-      name,
-    }));
-  })();
+    if (names.length > 0) {
+      assignedItems = names.map((name, i) => ({
+        id: String.fromCharCode(97 + i) as AssignedItem["id"],
+        name,
+      }));
+      // Only pass prose override guidance; the full item list is not needed.
+      promptNotes = catalog.prose || undefined;
+    }
+  }
 
   const messages = buildPrompt({
     snapshot,
-    customInstructions,
+    customInstructions: promptNotes,
     assignedItems,
   });
 
