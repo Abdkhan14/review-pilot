@@ -101,6 +101,18 @@ describe("buildPrompt", () => {
     expect(user).toContain(notes);
   });
 
+  it("tells the model not to overweight repeated or distinctive specialties", () => {
+    const text = promptText(
+      buildPrompt({
+        snapshot: JOES,
+        customInstructions: "fine line, cover-ups, floral",
+      }),
+    );
+    expect(text).toMatch(/equal weight/i);
+    expect(text).toMatch(/most distinctive or most-mentioned specialty/i);
+    expect(text).toMatch(/subject matter of the example Google reviews/i);
+  });
+
   it("still produces a prompt when reviews are missing", () => {
     const { reviews: _reviews, ...noReviews } = JOES;
     const messages = buildPrompt({ snapshot: noReviews });
