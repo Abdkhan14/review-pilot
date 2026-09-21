@@ -8,9 +8,21 @@ export type BuildPromptInput = {
   starIntent?: number;
 };
 
-const RESTAURANT_ANGLES = ["food", "service", "vibe"] as const;
-const SALON_ANGLES = ["result", "staff", "cleanliness"] as const;
-const GENERIC_ANGLES = ["quality_of_work", "staff", "experience"] as const;
+const RESTAURANT_ANGLES = [
+  "food & drink",
+  "ordering & service",
+  "atmosphere & value",
+] as const;
+const SALON_ANGLES = [
+  "results on the day",
+  "how the visit felt",
+  "value & would you return",
+] as const;
+const GENERIC_ANGLES = [
+  "the work itself",
+  "how the visit felt",
+  "value & would you return",
+] as const;
 
 const SALON_TOKENS = ["salon", "barber", "beauty", "spa", "hair"];
 const RESTAURANT_TOKENS = [

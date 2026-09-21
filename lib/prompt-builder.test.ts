@@ -153,19 +153,19 @@ describe("buildPrompt", () => {
     expect(text).toMatch(/5[- ]star/i);
   });
 
-  it("asks for food / service / vibe for a restaurant-ish type", () => {
+  it("asks for food & drink / ordering & service / atmosphere & value for a restaurant-ish type", () => {
     const text = promptText(buildPrompt({ snapshot: JOES }));
-    expect(text).toContain("food");
-    expect(text).toContain("service");
-    expect(text).toContain("vibe");
+    expect(text).toContain("food & drink");
+    expect(text).toContain("ordering & service");
+    expect(text).toContain("atmosphere & value");
   });
 
-  it("asks for quality of work / staff / experience when primaryType is missing", () => {
+  it("asks for the work / how the visit felt / value when primaryType is missing", () => {
     const { primaryType: _type, ...noType } = JOES;
     const text = promptText(buildPrompt({ snapshot: noType }));
-    expect(text).toContain("quality_of_work");
-    expect(text).toContain("staff");
-    expect(text).toContain("experience");
+    expect(text).toContain("the work itself");
+    expect(text).toContain("how the visit felt");
+    expect(text).toContain("value & would you return");
   });
 
   it("places existing review text after the examples heading", () => {
