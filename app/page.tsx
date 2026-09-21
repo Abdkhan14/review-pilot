@@ -11,7 +11,7 @@ export default function Home() {
       {/* Hero */}
       <section className="mb-12">
         <h1 className="text-4xl font-bold tracking-tight leading-tight text-zinc-900 mb-6">
-          Google reviews without the awkward ask.
+          Google reviews, minus the hard part.
         </h1>
         <p className="text-base text-zinc-500 leading-relaxed">
           A QR on the counter. They pick a draft. They paste it on Google.

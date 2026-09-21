@@ -8,7 +8,7 @@ describe("Home", () => {
     render(<Home />);
     expect(
       screen.getByRole("heading", {
-        name: /google reviews without the awkward ask/i,
+        name: /google reviews, minus the hard part/i,
       })
     ).toBeDefined();
   });
