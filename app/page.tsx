@@ -1,22 +1,15 @@
 import Image from "next/image";
-import { Instrument_Sans } from "next/font/google";
-
-const font = Instrument_Sans({
-  subsets: ["latin"],
-  weight: ["400", "600", "700"],
-  display: "swap",
-});
 
 export default function Home() {
   return (
-    <main className={`${font.className} py-16 px-1`}>
+    <main>
       {/* Wordmark */}
       <p className="text-xs font-semibold tracking-widest uppercase text-zinc-400 mb-12">
         Review Pilot
       </p>
 
       {/* Hero */}
-      <section className="mb-10">
+      <section className="mb-12">
         <h1 className="text-4xl font-bold tracking-tight leading-tight text-zinc-900 mb-6">
           Google reviews without the awkward ask.
         </h1>
@@ -43,7 +36,7 @@ export default function Home() {
       </section>
 
       {/* Why it matters */}
-      <section className="mt-16 border-t border-zinc-200 pt-10">
+      <section className="mt-12">
         <p className="text-xs font-semibold tracking-widest uppercase text-zinc-400 mb-8">
           Why it matters
         </p>

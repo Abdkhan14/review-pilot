@@ -20,7 +20,7 @@ export default async function EditBusinessPage({
   );
 
   return (
-    <main className="px-4 pt-16">
+    <main>
       <h1 className="text-xl font-semibold">Edit business</h1>
       <EditBusinessForm
         id={business.id}

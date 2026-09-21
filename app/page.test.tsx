@@ -1,12 +1,6 @@
 /// @vitest-environment jsdom
 import { render, screen } from "@testing-library/react";
-import { expect, describe, it, vi } from "vitest";
-
-// next/font/google is a Next.js build-time transform — stub it for jsdom
-vi.mock("next/font/google", () => ({
-  Instrument_Sans: () => ({ className: "mock-font" }),
-}));
-
+import { expect, describe, it } from "vitest";
 import Home from "./page";
 
 describe("Home", () => {

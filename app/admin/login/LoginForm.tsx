@@ -17,7 +17,7 @@ export default function LoginForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-4 py-12">
+    <form onSubmit={handleSubmit} className="flex flex-col gap-4 mt-6">
       <label htmlFor="password" className="text-sm font-medium">
         Password
       </label>
