@@ -29,7 +29,7 @@ export async function GET(
 
   if (format === "png") {
     const buf = await encodeQrPng(url);
-    return new NextResponse(buf, {
+    return new NextResponse(new Uint8Array(buf), {
       headers: {
         "Content-Type": "image/png",
         "Content-Disposition": `attachment; filename="${business.slug}.png"`,
