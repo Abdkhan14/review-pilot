@@ -62,7 +62,7 @@ export async function generateDrafts(
   const client = getClient();
 
   const completion = await client.chat.completions.create({
-    model: process.env.OPENAI_MODEL ?? "gpt-4.1-mini",
+    model: process.env.OPENAI_MODEL ?? "gpt-4.1-nano",
     messages,
     response_format: { type: "json_object" },
     temperature: 0.9,
