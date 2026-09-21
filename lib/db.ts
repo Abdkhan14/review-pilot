@@ -1,7 +1,8 @@
 import "server-only";
 import path from "node:path";
 import { PrismaClient } from "@prisma/client";
-import { PrismaLibSql } from "@prisma/adapter-libsql";
+import { createClient } from "@libsql/client";
+import { PrismaLibSQL } from "@prisma/adapter-libsql";
 import { resolveDbTarget } from "./db-target";
 
 /** Prisma CLI resolves SQLite paths from prisma/; Next.js cwd is the repo root. */
@@ -16,11 +17,9 @@ function createPrismaClient(): PrismaClient {
   const target = resolveDbTarget(process.env);
 
   if (target.kind === "turso") {
-    const adapter = new PrismaLibSql({
-      url: target.url,
-      authToken: target.token,
-    });
-    return new PrismaClient({ adapter } as ConstructorParameters<typeof PrismaClient>[0]);
+    const libsql = createClient({ url: target.url, authToken: target.token });
+    const adapter = new PrismaLibSQL(libsql);
+    return new PrismaClient({ adapter });
   }
 
   const url = resolveSqliteUrl(process.env.DATABASE_URL ?? "file:./dev.db");
