@@ -9,20 +9,88 @@ export type BuildPromptInput = {
 };
 
 const RESTAURANT_ANGLES = [
-  "food & drink",
-  "ordering & service",
-  "atmosphere & value",
-] as const;
+  "what you actually ate",
+  "how the place felt on a normal visit",
+  "whether it hit the craving",
+  "the thing you almost didn't order but did",
+  "how full you left feeling",
+  "the first bite",
+  "the sides or extras",
+  "the drink or dessert",
+  "the smell when you walked in",
+  "how the bill felt at the end",
+  "how loud or quiet it was",
+  "what the regulars seem to know to order",
+  "whether it held up as takeout",
+  "how fast or slow the food came",
+  "the detail that made you want to come back",
+  "something you noticed that you didn't expect",
+  "what you'd tell someone who'd never been",
+  "how it felt to sit there for a while",
+  "the thing that was better than it sounds on the menu",
+  "whether you'd go back on a weeknight",
+  "how the staff read the room",
+  "something small that made the meal",
+  "what you were in the mood for and whether it delivered",
+  "how it felt walking out",
+  "the thing you're still thinking about",
+];
+
 const SALON_ANGLES = [
-  "results on the day",
-  "how the visit felt",
-  "value & would you return",
-] as const;
+  "what it looked like walking out",
+  "whether they actually listened",
+  "the thing you were nervous about that went fine",
+  "how the space felt when you walked in",
+  "how long it lasted",
+  "the moment you saw the final result",
+  "what you'd book next time",
+  "how your hair or skin looked later that day",
+  "how the appointment actually ran",
+  "the one detail that made a difference",
+  "how they handled what you were unsure about",
+  "whether the stylist explained what they were doing",
+  "something you noticed about how they work",
+  "how you felt on the way home",
+  "whether you booked before you left",
+  "what the place smelled or sounded like",
+  "the thing nobody warned you about (in a good way)",
+  "how they handled a fix or adjustment",
+  "what made this visit stick in your memory",
+  "whether it was worth clearing your schedule for",
+  "how relaxed or rushed the pace felt",
+  "what you'd tell a friend who was on the fence",
+  "the small thing that made it feel personal",
+  "whether the result matched what you asked for",
+  "how different you felt compared to walking in",
+];
+
 const GENERIC_ANGLES = [
-  "the work itself",
-  "how the visit felt",
-  "value & would you return",
-] as const;
+  "how the thing actually turned out",
+  "the detail that surprised you",
+  "whether they listened to what you actually wanted",
+  "how the place felt to be in",
+  "how fast or slow the whole thing went",
+  "what you'd tell someone before they went",
+  "the moment you knew it was the right call",
+  "something small they did that you didn't expect",
+  "whether it matched what you saw online",
+  "how you felt walking out",
+  "the thing that would make you go back",
+  "whether it solved what you came in for",
+  "how easy or hard it was to get going",
+  "something they did that went beyond what you asked",
+  "the thing that's still on your mind",
+  "whether the price felt right after",
+  "how quick the turnaround was",
+  "the first impression and whether it held",
+  "what you'd do differently knowing what you know now",
+  "how they handled a question or hiccup",
+  "the one thing you'd highlight to a friend",
+  "whether the vibe matched the work",
+  "how it felt to hand it off or leave",
+  "something you noticed that others might miss",
+  "whether you'd clear your schedule for it again",
+];
 
 const SALON_TOKENS = ["salon", "barber", "beauty", "spa", "hair"];
 const RESTAURANT_TOKENS = [
@@ -44,17 +112,27 @@ export function buildPrompt(input: BuildPromptInput): PromptMessage[] {
   ];
 }
 
-function anglesForPrimaryType(
-  primaryType: string | undefined,
-): readonly string[] {
+function anglesForPrimaryType(primaryType: string | undefined): string[] {
   const type = primaryType?.toLowerCase() ?? "";
+  let pool: string[];
   if (SALON_TOKENS.some((token) => hasToken(type, token))) {
-    return SALON_ANGLES;
+    pool = SALON_ANGLES;
+  } else if (RESTAURANT_TOKENS.some((token) => hasToken(type, token))) {
+    pool = RESTAURANT_ANGLES;
+  } else {
+    pool = GENERIC_ANGLES;
   }
-  if (RESTAURANT_TOKENS.some((token) => hasToken(type, token))) {
-    return RESTAURANT_ANGLES;
+  return pickRandom(pool, 3);
+}
+
+/** Fisher-Yates shuffle; returns n items chosen at random from pool. */
+function pickRandom<T>(pool: T[], n: number): T[] {
+  const arr = [...pool];
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
   }
-  return GENERIC_ANGLES;
+  return arr.slice(0, n);
 }
 
 /** Whole-token match so "spa" does not hit "space" and "bar" does not hit "barber". */
