@@ -78,4 +78,13 @@ describe("generateDrafts", () => {
     delete process.env.OPENAI_API_KEY;
     await expect(generateDrafts(MESSAGES)).rejects.toThrow(/OPENAI_API_KEY/);
   });
+
+  it("uses gpt-4.1-nano by default when OPENAI_MODEL is unset", async () => {
+    delete process.env.OPENAI_MODEL;
+    stubCreate(THREE_DRAFTS);
+    await generateDrafts(MESSAGES);
+    expect(mockCreate).toHaveBeenCalledWith(
+      expect.objectContaining({ model: "gpt-4.1-nano" })
+    );
+  });
 });
