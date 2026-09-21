@@ -5,7 +5,9 @@ import { db } from "@/lib/db";
 import { buildPrompt } from "@/lib/prompt-builder";
 import { generateDrafts, GenerationError } from "@/lib/generate-drafts";
 import { ipFromHeaders, rateLimitKey, checkRateLimit } from "@/lib/rate-limit";
+import { parseCatalog, sampleItems, DRAFT_COUNT } from "@/lib/catalog-items";
 import type { PlaceSnapshot } from "@/lib/place-snapshot";
+import type { AssignedItem } from "@/lib/prompt-builder";
 
 function snapshotFromBusiness(business: {
   details: string | null;
@@ -43,9 +45,22 @@ export async function POST(
 
   const snapshot = snapshotFromBusiness(business);
 
+  const customInstructions = business.customInstructions ?? undefined;
+  const assignedItems: AssignedItem[] | undefined = (() => {
+    if (!customInstructions) return undefined;
+    const catalog = parseCatalog(customInstructions);
+    const names = sampleItems(catalog, DRAFT_COUNT);
+    if (names.length === 0) return undefined;
+    return names.map((name, i) => ({
+      id: String.fromCharCode(97 + i) as AssignedItem["id"],
+      name,
+    }));
+  })();
+
   const messages = buildPrompt({
     snapshot,
-    customInstructions: business.customInstructions ?? undefined,
+    customInstructions,
+    assignedItems,
   });
 
   try {

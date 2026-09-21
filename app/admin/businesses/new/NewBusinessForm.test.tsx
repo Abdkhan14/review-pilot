@@ -37,7 +37,7 @@ describe("NewBusinessForm", () => {
     render(<NewBusinessForm />);
 
     fillForm();
-    fireEvent.change(screen.getByLabelText(/custom instructions/i), {
+    fireEvent.change(screen.getByLabelText(/shop notes/i), {
       target: { value: "mention the garlic knots" },
     });
     fireEvent.click(screen.getByRole("button", { name: /create business/i }));

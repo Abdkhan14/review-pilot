@@ -1,6 +1,7 @@
 import "server-only";
 import OpenAI from "openai";
 import type { PromptMessage } from "./prompt-builder";
+import { DRAFT_COUNT } from "./catalog-items";
 
 export type DraftReview = { id: string; angle: string; text: string };
 
@@ -35,13 +36,13 @@ function parseDrafts(content: string | null | undefined): DraftReview[] {
 
   const reviews = (parsed as { reviews: unknown[] }).reviews;
 
-  if (reviews.length < 3) {
+  if (reviews.length < DRAFT_COUNT) {
     throw new GenerationError(
-      `expected 3 reviews, got ${reviews.length}`,
+      `expected ${DRAFT_COUNT} reviews, got ${reviews.length}`,
     );
   }
 
-  return reviews.slice(0, 3).map((r, i) => {
+  return reviews.slice(0, DRAFT_COUNT).map((r, i) => {
     if (
       !r ||
       typeof r !== "object" ||
