@@ -55,6 +55,22 @@ describe("DraftPicker", () => {
     ).toBeDefined();
   });
 
+  it("shows error message when generateFailed is true", () => {
+    render(
+      <DraftPicker drafts={[]} writeReviewUrl={REVIEW_URL} generateFailed />
+    );
+    expect(
+      screen.getByText(/couldn't generate/i)
+    ).toBeDefined();
+  });
+
+  it("does not show error message when generateFailed is false", () => {
+    render(
+      <DraftPicker drafts={DRAFTS} writeReviewUrl={REVIEW_URL} generateFailed={false} />
+    );
+    expect(screen.queryByText(/couldn't generate/i)).toBeNull();
+  });
+
   it("clicking copy on card 2 calls clipboard with card 2 text", async () => {
     render(<DraftPicker drafts={DRAFTS} writeReviewUrl={REVIEW_URL} />);
     const copyButtons = screen.getAllByRole("button", { name: /copy review/i });

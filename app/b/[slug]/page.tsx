@@ -38,6 +38,7 @@ export default async function ScanPage({
   const allowed = checkRateLimit(rateLimitKey(ip, slug));
 
   let drafts: DraftReview[] = [];
+  let generateFailed = false;
   if (allowed) {
     const messages = buildPrompt({
       snapshot,
@@ -46,7 +47,7 @@ export default async function ScanPage({
     try {
       drafts = await generateDrafts(messages);
     } catch {
-      // Generation failed — render empty; skip still works via DraftPicker.
+      generateFailed = true;
     }
   }
 
@@ -59,7 +60,11 @@ export default async function ScanPage({
       <h1 className="pb-6 text-lg font-semibold">
         Pick a review to share
       </h1>
-      <DraftPicker drafts={drafts} writeReviewUrl={googleUrl} />
+      <DraftPicker
+        drafts={drafts}
+        writeReviewUrl={googleUrl}
+        generateFailed={generateFailed}
+      />
     </main>
   );
 }
