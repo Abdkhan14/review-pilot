@@ -18,7 +18,7 @@ function SkeletonCard() {
 
 export function DraftsSkeleton() {
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-4" data-testid="drafts-skeleton">
       <SkeletonCard />
       <SkeletonCard />
       <SkeletonCard />
