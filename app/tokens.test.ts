@@ -17,6 +17,10 @@ describe("tokens", () => {
   it("maxWidth is max-w-md", () => {
     expect(tokens.maxWidth).toBe("max-w-md");
   });
+
+  it("pageY is py-10", () => {
+    expect(tokens.pageY).toBe("py-10");
+  });
 });
 
 describe("layoutClass", () => {
@@ -25,9 +29,10 @@ describe("layoutClass", () => {
     expect(layoutClass.body).toContain(tokens.text);
   });
 
-  it("column includes maxWidth and border tokens", () => {
+  it("column includes maxWidth, border, and pageY tokens", () => {
     expect(layoutClass.column).toContain(tokens.maxWidth);
     expect(layoutClass.column).toContain(tokens.border);
+    expect(layoutClass.column).toContain(tokens.pageY);
   });
 
   it("neither class uses rounded-*", () => {

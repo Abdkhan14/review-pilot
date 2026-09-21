@@ -51,7 +51,7 @@ export default function EditBusinessForm({
   const displayError = fieldErrors.length > 0 ? fieldErrors.join(". ") : error;
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-4 py-12">
+    <form onSubmit={handleSubmit} className="flex flex-col gap-4 mt-6">
       <div>
         <p className="text-sm font-medium text-zinc-500">Name</p>
         <p className="mt-1 text-sm">{name}</p>

@@ -44,7 +44,7 @@ export default function NewBusinessForm() {
   const displayError = fieldErrors.length > 0 ? fieldErrors.join(". ") : error;
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-4 py-12">
+    <form onSubmit={handleSubmit} className="flex flex-col gap-4 mt-6">
       <label htmlFor="name" className="text-sm font-medium">
         Name
       </label>

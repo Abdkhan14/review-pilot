@@ -13,8 +13,8 @@ function SkeletonCard() {
 
 export default function Loading() {
   return (
-    <main className="mx-auto min-h-dvh w-full max-w-md px-4">
-      <h1 className="pt-10 pb-6 text-lg font-semibold">
+    <main>
+      <h1 className="pb-6 text-lg font-semibold">
         Pick a review to share
       </h1>
       <div className="flex flex-col">
