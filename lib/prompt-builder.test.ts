@@ -57,7 +57,7 @@ describe("buildPrompt", () => {
     expect(text).toContain("mention the garlic knots");
   });
 
-  it("tells the model to sample across shop notes, not the first item", () => {
+  it("tells the model to pick at random from the whole shop-notes pool", () => {
     const text = promptText(
       buildPrompt({
         snapshot: JOES,
@@ -65,9 +65,29 @@ describe("buildPrompt", () => {
           "Shawarma platter, mixed grill, baklava, mint tea",
       }),
     );
-    expect(text).toMatch(/do not fixate on whatever appears first/i);
-    expect(text).toMatch(/different stretch of the shop notes/i);
-    expect(text).toMatch(/do not default to the first item/i);
+    expect(text).toMatch(/at random from the whole (list|pool)/i);
+    expect(text).toMatch(/do not prefer the first or last item/i);
+    expect(text).not.toMatch(/different stretch of the shop notes/i);
+  });
+
+  it("says shop notes override the rest of the prompt", () => {
+    const text = promptText(
+      buildPrompt({
+        snapshot: JOES,
+        customInstructions: "mention the garlic knots",
+      }),
+    );
+    expect(text).toMatch(/shop notes override/i);
+  });
+
+  it("passes shop notes through unchanged", () => {
+    const notes =
+      "Chicken Shawarma Platter - $21.00 | Mixed Shawarma Platter - $22.49 | Baklava Box - $13.99";
+    const user = buildPrompt({
+      snapshot: JOES,
+      customInstructions: notes,
+    })[1].content;
+    expect(user).toContain(notes);
   });
 
   it("still produces a prompt when reviews are missing", () => {
