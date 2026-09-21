@@ -6,6 +6,9 @@ import { buildScanUrl } from "@/lib/scan-url";
 import EditBusinessForm from "./EditBusinessForm";
 import QrPanel from "./QrPanel";
 
+/** Do not prerender — business rows change after deploy. */
+export const dynamic = "force-dynamic";
+
 export default async function EditBusinessPage({
   params,
 }: {

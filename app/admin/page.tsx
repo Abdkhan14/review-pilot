@@ -4,6 +4,9 @@ import { db } from "@/lib/db";
 import { BusinessList } from "./BusinessList";
 import { Button } from "@/components/ui/button";
 
+/** Do not prerender — list() must run against Turso on each request. */
+export const dynamic = "force-dynamic";
+
 export default async function AdminPage() {
   const rows = await list(db);
   return (
