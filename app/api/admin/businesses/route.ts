@@ -4,6 +4,7 @@ import { create, list } from "@/lib/business-repo";
 import { db } from "@/lib/db";
 import { parseCreateBusinessInput } from "@/lib/create-business-input";
 import { requireAdmin } from "@/lib/require-admin";
+import { fetchPlaceDetails } from "@/lib/places-details";
 
 export async function GET(req: NextRequest) {
   const denied = await requireAdmin(req);
@@ -24,8 +25,23 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: parsed.error }, { status: 400 });
   }
 
-  // Persist via existing repo
-  const business = await create(db, parsed.input);
+  // Fetch Place Details (New) — one call per create, never per scan.
+  // 502 on failure so the admin sees the error rather than persisting a broken row.
+  let snapshot;
+  try {
+    snapshot = await fetchPlaceDetails(parsed.input.placeId);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Places API unavailable";
+    return NextResponse.json({ error: message }, { status: 502 });
+  }
+
+  // Persist the admin-typed name but store Google's full snapshot in details.
+  const business = await create(db, {
+    ...parsed.input,
+    writeReviewUrl: snapshot.writeReviewUrl,
+    details: JSON.stringify(snapshot),
+    detailsFetchedAt: new Date(),
+  });
 
   // Return server-generated slug
   return NextResponse.json({ slug: business.slug }, { status: 201 });

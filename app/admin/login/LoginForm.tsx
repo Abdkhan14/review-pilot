@@ -3,32 +3,17 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { tokens } from "@/app/tokens";
+import { useLogin } from "@/hooks/useLogin";
 
 export default function LoginForm() {
   const router = useRouter();
+  const { login, loading, error } = useLogin();
   const [password, setPassword] = useState("");
-  const [error, setError] = useState<string | null>(null);
-  const [pending, setPending] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    setPending(true);
-    setError(null);
-
-    const res = await fetch("/api/auth/login", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ password }),
-      credentials: "include",
-    });
-
-    setPending(false);
-
-    if (res.status === 200) {
-      router.push("/admin");
-    } else {
-      setError("Wrong password. Try again.");
-    }
+    const ok = await login(password);
+    if (ok) router.push("/admin");
   }
 
   return (
@@ -47,16 +32,16 @@ export default function LoginForm() {
 
       {error && (
         <p role="alert" className="text-sm text-red-600">
-          {error}
+          Wrong password. Try again.
         </p>
       )}
 
       <button
         type="submit"
-        disabled={pending}
+        disabled={loading}
         className={`border ${tokens.border} px-4 py-2 text-sm font-medium disabled:opacity-50`}
       >
-        {pending ? "Logging in…" : "Log in"}
+        {loading ? "Logging in…" : "Log in"}
       </button>
     </form>
   );

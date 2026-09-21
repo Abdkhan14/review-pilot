@@ -4,9 +4,11 @@ vi.mock("server-only", () => ({}));
 vi.mock("@/lib/auth", () => ({ verifySession: vi.fn() }));
 vi.mock("@/lib/business-repo", () => ({ create: vi.fn(), list: vi.fn() }));
 vi.mock("@/lib/db", () => ({ db: {} }));
+vi.mock("@/lib/places-details", () => ({ fetchPlaceDetails: vi.fn() }));
 
 import * as auth from "@/lib/auth";
 import * as repo from "@/lib/business-repo";
+import * as placesDetails from "@/lib/places-details";
 import { NextRequest } from "next/server";
 import { GET, POST } from "./route";
 import { ADMIN_COOKIE } from "@/lib/session-cookie";
@@ -14,6 +16,19 @@ import { ADMIN_COOKIE } from "@/lib/session-cookie";
 const mockVerify = vi.mocked(auth.verifySession);
 const mockCreate = vi.mocked(repo.create);
 const mockList = vi.mocked(repo.list);
+const mockFetchPlaceDetails = vi.mocked(placesDetails.fetchPlaceDetails);
+
+const MOCK_SNAPSHOT = {
+  placeId: "ChIJ123",
+  name: "Joe's Pizza",
+  address: "123 Main St",
+  primaryType: "pizza_restaurant",
+  rating: 4.6,
+  userRatingCount: 100,
+  writeReviewUrl: "https://www.google.com/maps/place//data=!review",
+  reviews: [],
+  fetchedAt: "2026-09-20T00:00:00.000Z",
+};
 
 function makeGet(cookie?: string): NextRequest {
   const headers: Record<string, string> = {};
@@ -111,6 +126,7 @@ describe("POST /api/admin/businesses", () => {
 
   it("returns 201, calls create without slug, returns the server slug", async () => {
     mockVerify.mockResolvedValue({ role: "admin" });
+    mockFetchPlaceDetails.mockResolvedValue(MOCK_SNAPSHOT as any);
     mockCreate.mockResolvedValue({ slug: "joes-pizza-ab12" } as any);
 
     const res = await postBody(
@@ -123,5 +139,34 @@ describe("POST /api/admin/businesses", () => {
 
     const [, callInput] = mockCreate.mock.calls[0];
     expect(callInput).not.toHaveProperty("slug");
+  });
+
+  it("persists writeReviewUrl, details, and detailsFetchedAt from Places snapshot", async () => {
+    mockVerify.mockResolvedValue({ role: "admin" });
+    mockFetchPlaceDetails.mockResolvedValue(MOCK_SNAPSHOT as any);
+    mockCreate.mockResolvedValue({ slug: "joes-pizza-ab12" } as any);
+
+    await postBody(
+      { name: "Joe's Pizza", placeId: "ChIJ123", tier: "BASIC" },
+      "valid-token"
+    );
+
+    const [, callInput] = mockCreate.mock.calls[0];
+    expect(callInput.writeReviewUrl).toBe(MOCK_SNAPSHOT.writeReviewUrl);
+    expect(JSON.parse(callInput.details!)).toMatchObject({ placeId: "ChIJ123" });
+    expect(callInput.detailsFetchedAt).toBeInstanceOf(Date);
+  });
+
+  it("returns 502 when Places API call fails", async () => {
+    mockVerify.mockResolvedValue({ role: "admin" });
+    mockFetchPlaceDetails.mockRejectedValue(new Error("Places API error 400"));
+
+    const res = await postBody(
+      { name: "Joe's Pizza", placeId: "ChIJ123", tier: "BASIC" },
+      "valid-token"
+    );
+
+    expect(res.status).toBe(502);
+    expect(mockCreate).not.toHaveBeenCalled();
   });
 });
