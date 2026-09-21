@@ -70,6 +70,17 @@ describe("buildPrompt", () => {
     expect(text).not.toMatch(/different stretch of the shop notes/i);
   });
 
+  it("tells the model consecutive generations must not reuse the same items", () => {
+    const text = promptText(
+      buildPrompt({
+        snapshot: JOES,
+        customInstructions:
+          "Shawarma platter, mixed grill, baklava, mint tea",
+      }),
+    );
+    expect(text).toMatch(/consecutive generations must not/i);
+  });
+
   it("says shop notes override the rest of the prompt", () => {
     const text = promptText(
       buildPrompt({

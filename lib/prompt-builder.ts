@@ -70,6 +70,8 @@ function systemMessage(angles: readonly string[], starIntent: number): string {
     "- Vary sentence length. Sound like a real person dashing off a review, not an AI or a marketing writer",
     "- If shop notes list items, pick three different ones at random from the whole pool. Do not prefer the first or last item, or the first section",
     "- If the notes have labeled sections, spread the three reviews across different sections. Name items from the notes, not from example Google reviews",
+    "- Never mention the same item in more than one of the three reviews",
+    "- Consecutive generations must not talk about the same items. Each generate, choose a fresh set — do not default to the items you would typically pick",
     "",
     "Return JSON only, this shape:",
     `{ "reviews": [ { "id": "a", "angle": "${a}", "text": "..." }, { "id": "b", "angle": "${b}", "text": "..." }, { "id": "c", "angle": "${c}", "text": "..." } ] }`,
@@ -101,7 +103,7 @@ function userMessage(input: BuildPromptInput): string {
   if (notes) {
     lines.push(
       "",
-      "Shop notes (these override the rules above; pick three different items at random from the whole list, not the first or last item):",
+      "Shop notes (these override the rules above; pick three different items at random from the whole list, not the first or last item; consecutive generations must not reuse the same items):",
       notes,
     );
   }
