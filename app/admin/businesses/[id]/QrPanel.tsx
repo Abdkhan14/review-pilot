@@ -1,4 +1,5 @@
 import { tokens } from "@/app/tokens";
+import { Button } from "@/components/ui/button";
 
 type Props = {
   id: string;
@@ -9,7 +10,7 @@ type Props = {
 
 export default function QrPanel({ id, slug, svg }: Props) {
   return (
-    <section className={`mb-8 border ${tokens.border} p-4`}>
+    <section className={`mt-8 mb-8 rounded-lg border ${tokens.border} bg-white p-4 shadow-sm`}>
       {/* Inline SVG fills the full column width for a large, scannable preview */}
       <div
         className="w-full"
@@ -18,20 +19,28 @@ export default function QrPanel({ id, slug, svg }: Props) {
         dangerouslySetInnerHTML={{ __html: svg }}
       />
       <div className="mt-4 flex gap-3">
-        <a
-          href={`/api/admin/businesses/${id}/qr?format=png`}
-          className={`border ${tokens.border} px-3 py-1 text-sm`}
-          download={`${slug}.png`}
+        <Button
+          asChild
+          variant="outline"
         >
-          Download PNG
-        </a>
-        <a
-          href={`/api/admin/businesses/${id}/qr?format=svg`}
-          className={`border ${tokens.border} px-3 py-1 text-sm`}
-          download={`${slug}.svg`}
+          <a
+            href={`/api/admin/businesses/${id}/qr?format=png`}
+            download={`${slug}.png`}
+          >
+            Download PNG
+          </a>
+        </Button>
+        <Button
+          asChild
+          variant="outline"
         >
-          Download SVG
-        </a>
+          <a
+            href={`/api/admin/businesses/${id}/qr?format=svg`}
+            download={`${slug}.svg`}
+          >
+            Download SVG
+          </a>
+        </Button>
       </div>
     </section>
   );

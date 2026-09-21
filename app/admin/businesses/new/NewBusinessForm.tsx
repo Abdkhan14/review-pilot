@@ -3,6 +3,8 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { tokens } from "@/app/tokens";
 import { useCreateBusiness } from "@/hooks/useCreateBusiness";
+import { Button } from "@/components/ui/button";
+import { Alert } from "@/components/ui/alert";
 
 export default function NewBusinessForm() {
   const router = useRouter();
@@ -53,7 +55,7 @@ export default function NewBusinessForm() {
         type="text"
         value={name}
         onChange={(e) => setName(e.target.value)}
-        className={`border ${tokens.border} bg-white px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-zinc-400`}
+        className={`rounded-md border ${tokens.border} bg-white px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-zinc-400`}
       />
 
       <label htmlFor="placeId" className="text-sm font-medium">
@@ -64,22 +66,27 @@ export default function NewBusinessForm() {
         type="text"
         value={placeId}
         onChange={(e) => setPlaceId(e.target.value)}
-        className={`border ${tokens.border} bg-white px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-zinc-400`}
+        className={`rounded-md border ${tokens.border} bg-white px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-zinc-400`}
       />
 
       <label htmlFor="tier" className="text-sm font-medium">
         Tier
       </label>
-      <select
-        id="tier"
-        value={tier}
-        onChange={(e) => setTier(e.target.value as "BASIC" | "SAAS" | "")}
-        className={`border ${tokens.border} bg-white px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-zinc-400`}
-      >
-        <option value="">Select tier</option>
-        <option value="BASIC">BASIC</option>
-        <option value="SAAS">SAAS</option>
-      </select>
+      <div className="relative">
+        <select
+          id="tier"
+          value={tier}
+          onChange={(e) => setTier(e.target.value as "BASIC" | "SAAS" | "")}
+          className={`w-full appearance-none rounded-md border ${tokens.border} bg-white px-3 py-2 pr-8 text-sm outline-none focus:ring-1 focus:ring-zinc-400`}
+        >
+          <option value="">Select tier</option>
+          <option value="BASIC">BASIC</option>
+          <option value="SAAS">SAAS</option>
+        </select>
+        <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400">
+          ▾
+        </span>
+      </div>
 
       <label htmlFor="customInstructions" className="text-sm font-medium">
         Custom instructions (optional)
@@ -89,22 +96,16 @@ export default function NewBusinessForm() {
         value={customInstructions}
         onChange={(e) => setCustomInstructions(e.target.value)}
         rows={3}
-        className={`border ${tokens.border} bg-white px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-zinc-400`}
+        className={`rounded-md border ${tokens.border} bg-white px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-zinc-400`}
       />
 
       {displayError && (
-        <p role="alert" className="text-sm text-red-600">
-          {displayError}
-        </p>
+        <Alert variant="destructive">{displayError}</Alert>
       )}
 
-      <button
-        type="submit"
-        disabled={loading}
-        className={`border ${tokens.border} px-4 py-2 text-sm font-medium disabled:opacity-50`}
-      >
+      <Button type="submit" variant="outline" disabled={loading} className="w-full">
         {loading ? "Saving…" : "Create business"}
-      </button>
+      </Button>
     </form>
   );
 }

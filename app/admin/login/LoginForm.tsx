@@ -4,6 +4,8 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { tokens } from "@/app/tokens";
 import { useLogin } from "@/hooks/useLogin";
+import { Button } from "@/components/ui/button";
+import { Alert } from "@/components/ui/alert";
 
 export default function LoginForm() {
   const router = useRouter();
@@ -27,22 +29,16 @@ export default function LoginForm() {
         value={password}
         onChange={(e) => setPassword(e.target.value)}
         required
-        className={`border ${tokens.border} bg-white px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-zinc-400`}
+        className={`rounded-md border ${tokens.border} bg-white px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-zinc-400`}
       />
 
       {error && (
-        <p role="alert" className="text-sm text-red-600">
-          Wrong password. Try again.
-        </p>
+        <Alert variant="destructive">Wrong password. Try again.</Alert>
       )}
 
-      <button
-        type="submit"
-        disabled={loading}
-        className={`border ${tokens.border} px-4 py-2 text-sm font-medium disabled:opacity-50`}
-      >
+      <Button type="submit" variant="outline" disabled={loading} className="w-full">
         {loading ? "Logging in…" : "Log in"}
-      </button>
+      </Button>
     </form>
   );
 }

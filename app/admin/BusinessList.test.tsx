@@ -31,8 +31,9 @@ describe("BusinessList", () => {
     expect(screen.getByText("Place ID: ChIJN1t_salon")).toBeDefined();
   });
 
-  it("renders without throwing when the list is empty", () => {
+  it("renders empty state copy when list is empty", () => {
     render(<BusinessList businesses={[]} />);
     expect(screen.queryByRole("listitem")).toBeNull();
+    expect(screen.getByText(/no businesses yet/i)).toBeDefined();
   });
 });
