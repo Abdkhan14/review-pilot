@@ -44,7 +44,7 @@ describe("EditBusinessForm", () => {
     render(<EditBusinessForm {...defaultProps} />);
 
     fireEvent.change(screen.getByLabelText(/^tier$/i), { target: { value: "SAAS" } });
-    fireEvent.change(screen.getByLabelText(/custom instructions/i), {
+    fireEvent.change(screen.getByLabelText(/shop notes/i), {
       target: { value: "mention the garlic knots" },
     });
     fireEvent.click(screen.getByRole("button", { name: /save changes/i }));
@@ -96,7 +96,7 @@ describe("EditBusinessForm", () => {
     const select = screen.getByLabelText(/^tier$/i) as HTMLSelectElement;
     expect(select.value).toBe("SAAS");
 
-    const textarea = screen.getByLabelText(/custom instructions/i) as HTMLTextAreaElement;
+    const textarea = screen.getByLabelText(/shop notes/i) as HTMLTextAreaElement;
     expect(textarea.value).toBe("some notes");
   });
 });

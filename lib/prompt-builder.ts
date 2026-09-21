@@ -1,11 +1,16 @@
 import type { PlaceSnapshot } from "./place-snapshot";
+import { DRAFT_COUNT } from "./catalog-items";
 
 export type PromptMessage = { role: "system" | "user"; content: string };
+
+export type AssignedItem = { id: "a" | "b" | "c"; name: string };
 
 export type BuildPromptInput = {
   snapshot: PlaceSnapshot;
   customInstructions?: string;
   starIntent?: number;
+  /** Items picked by the server. When present, each review must cover its assigned item. */
+  assignedItems?: AssignedItem[];
 };
 
 type Angle = { label: string; pick: string };
@@ -334,7 +339,7 @@ export function buildPrompt(input: BuildPromptInput): PromptMessage[] {
   const angles = anglesForPrimaryType(input.snapshot.primaryType);
 
   return [
-    { role: "system", content: systemMessage(angles, starIntent) },
+    { role: "system", content: systemMessage(angles, starIntent, input.assignedItems) },
     { role: "user", content: userMessage(input) },
   ];
 }
@@ -349,7 +354,7 @@ function anglesForPrimaryType(primaryType: string | undefined): Angle[] {
   } else {
     pool = GENERIC_ANGLES;
   }
-  return pickRandom(pool, 3);
+  return pickRandom(pool, DRAFT_COUNT);
 }
 
 /** Fisher-Yates shuffle; returns n items chosen at random from pool. */
@@ -367,11 +372,27 @@ function hasToken(primaryType: string, keyword: string): boolean {
   return new RegExp(`(^|_)${keyword}($|_)`).test(primaryType);
 }
 
-function systemMessage(angles: readonly Angle[], starIntent: number): string {
+function systemMessage(
+  angles: readonly Angle[],
+  starIntent: number,
+  assignedItems?: AssignedItem[],
+): string {
   const [a, b, c] = angles;
   const angleLines = angles
     .map((ang) => `  - ${ang.label}: ${ang.pick}`)
     .join("\n");
+
+  const itemRules =
+    assignedItems && assignedItems.length > 0
+      ? [
+          "- Each review must be about its assigned subject (see user message). Do not swap or substitute subjects",
+          "- Do not mention a catalog item in a review other than the one it is assigned to",
+        ]
+      : [
+          "- Treat every listed item as equal weight. A phrase that appears more than once is not more important",
+          "- Do not default to the shop's most distinctive or most-mentioned specialty",
+        ];
+
   return [
     "You write three short Google reviews for a real customer who just visited this business.",
     "",
@@ -388,12 +409,7 @@ function systemMessage(angles: readonly Angle[], starIntent: number): string {
     "- No exclamation marks — they read as fake",
     "- No filler phrases like 'I highly recommend', 'definitely recommend', 'five stars', 'absolutely', 'amazing', or 'fantastic'",
     "- Vary sentence length. Sound like a real person dashing off a review, not an AI or a marketing writer",
-    "- If shop notes list items, pick three different ones at random from the whole pool. Do not prefer the first or last item, or the first section",
-    "- Treat every listed item as equal weight. A phrase that appears more than once is not more important",
-    "- Do not default to the shop's most distinctive or most-mentioned specialty",
-    "- If the notes have labeled sections, spread the three reviews across different sections. Name items from the notes, not from example Google reviews",
-    "- Never mention the same item in more than one of the three reviews",
-    "- Consecutive generations must not talk about the same items. Each generate, choose a fresh set — do not default to the items you would typically pick",
+    ...itemRules,
     "",
     "Return JSON only, this shape:",
     `{ "reviews": [ { "id": "a", "angle": "${a.label}", "text": "..." }, { "id": "b", "angle": "${b.label}", "text": "..." }, { "id": "c", "angle": "${c.label}", "text": "..." } ] }`,
@@ -401,7 +417,7 @@ function systemMessage(angles: readonly Angle[], starIntent: number): string {
 }
 
 function userMessage(input: BuildPromptInput): string {
-  const { snapshot, customInstructions } = input;
+  const { snapshot, customInstructions, assignedItems } = input;
   const lines: string[] = [`Shop: ${snapshot.name}`];
 
   if (snapshot.primaryType) {
@@ -423,10 +439,16 @@ function userMessage(input: BuildPromptInput): string {
 
   const notes = customInstructions?.trim();
   if (notes) {
+    lines.push("", "Shop notes (these override the rules above):", notes);
+  }
+
+  // When the server has assigned subjects, list them explicitly.
+  // Do NOT also dump the full catalog here — that causes gravitating.
+  if (assignedItems && assignedItems.length > 0) {
     lines.push(
       "",
-      "Shop notes (these override the rules above; pick three different items at random from the whole list, not the first or last item; consecutive generations must not reuse the same items):",
-      notes,
+      "Assigned subjects (each review must cover exactly its subject):",
+      ...assignedItems.map((it) => `  ${it.id}: ${it.name}`),
     );
   }
 

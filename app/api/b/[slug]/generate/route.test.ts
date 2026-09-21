@@ -4,12 +4,16 @@ vi.mock("server-only", () => ({}));
 vi.mock("@/lib/business-repo", () => ({ findBySlug: vi.fn() }));
 vi.mock("@/lib/db", () => ({ db: {} }));
 vi.mock("@/lib/generate-drafts", () => ({ generateDrafts: vi.fn(), GenerationError: class GenerationError extends Error {} }));
+vi.mock("@/lib/prompt-builder", () => ({ buildPrompt: vi.fn(() => []) }));
 
 import * as repo from "@/lib/business-repo";
 import * as generateDraftsLib from "@/lib/generate-drafts";
+import * as promptBuilderLib from "@/lib/prompt-builder";
 import { resetRateLimitStore } from "@/lib/rate-limit";
 import { NextRequest } from "next/server";
 import { POST } from "./route";
+
+const mockBuildPrompt = vi.mocked(promptBuilderLib.buildPrompt);
 
 const mockFindBySlug = vi.mocked(repo.findBySlug);
 const mockGenerateDrafts = vi.mocked(generateDraftsLib.generateDrafts);
@@ -96,6 +100,44 @@ describe("POST /api/b/[slug]/generate", () => {
     const body = await res.json();
     expect(body).toHaveProperty("error");
     expect(body.error).not.toContain("model returned non-JSON content");
+  });
+
+  it("passes assigned items from catalog to buildPrompt when notes have list items", async () => {
+    const businessWithNotes = {
+      ...SAAS_BUSINESS,
+      customInstructions: "# Mains\n- Shawarma\n- Mixed Grill\n\n# Sides\n- Hummus\n- Falafel\n\n# Drinks\n- Mint Tea",
+    };
+    mockFindBySlug.mockResolvedValue(businessWithNotes as any);
+    mockGenerateDrafts.mockResolvedValue(THREE_DRAFTS);
+    await makePost("joes-pizza-ab12");
+
+    expect(mockBuildPrompt).toHaveBeenCalledWith(
+      expect.objectContaining({
+        assignedItems: expect.arrayContaining([
+          expect.objectContaining({ id: expect.stringMatching(/^[abc]$/) }),
+        ]),
+      }),
+    );
+
+    const call = mockBuildPrompt.mock.calls[0][0];
+    expect(call.assignedItems).toHaveLength(3);
+    const validItems = new Set(["Shawarma", "Mixed Grill", "Hummus", "Falafel", "Mint Tea"]);
+    for (const item of call.assignedItems!) {
+      expect(validItems.has(item.name)).toBe(true);
+    }
+  });
+
+  it("passes no assignedItems to buildPrompt when notes have no list items", async () => {
+    const businessWithProseOnly = {
+      ...SAAS_BUSINESS,
+      customInstructions: "Always mention the open kitchen.",
+    };
+    mockFindBySlug.mockResolvedValue(businessWithProseOnly as any);
+    mockGenerateDrafts.mockResolvedValue(THREE_DRAFTS);
+    await makePost("joes-pizza-ab12");
+
+    const call = mockBuildPrompt.mock.calls[0][0];
+    expect(call.assignedItems).toBeUndefined();
   });
 
   it("returns 429 on the 6th request in the window and does not call generateDrafts", async () => {

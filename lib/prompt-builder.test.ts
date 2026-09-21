@@ -57,28 +57,40 @@ describe("buildPrompt", () => {
     expect(text).toContain("mention the garlic knots");
   });
 
-  it("tells the model to pick at random from the whole shop-notes pool", () => {
-    const text = promptText(
-      buildPrompt({
-        snapshot: JOES,
-        customInstructions:
-          "Shawarma platter, mixed grill, baklava, mint tea",
-      }),
-    );
-    expect(text).toMatch(/at random from the whole (list|pool)/i);
-    expect(text).toMatch(/do not prefer the first or last item/i);
-    expect(text).not.toMatch(/different stretch of the shop notes/i);
+  it("includes assigned subjects in the user message when assignedItems are provided", () => {
+    const user = buildPrompt({
+      snapshot: JOES,
+      customInstructions: "# Mains\n- Shawarma\n- Mixed Grill\n\n# Sides\n- Hummus",
+      assignedItems: [
+        { id: "a", name: "Shawarma" },
+        { id: "b", name: "Hummus" },
+        { id: "c", name: "Mixed Grill" },
+      ],
+    })[1].content;
+    expect(user).toContain("Assigned subjects");
+    expect(user).toContain("a: Shawarma");
+    expect(user).toContain("b: Hummus");
+    expect(user).toContain("c: Mixed Grill");
   });
 
-  it("tells the model consecutive generations must not reuse the same items", () => {
-    const text = promptText(
-      buildPrompt({
-        snapshot: JOES,
-        customInstructions:
-          "Shawarma platter, mixed grill, baklava, mint tea",
-      }),
-    );
-    expect(text).toMatch(/consecutive generations must not/i);
+  it("uses assignment rules in the system message when assignedItems are provided", () => {
+    const system = buildPrompt({
+      snapshot: JOES,
+      assignedItems: [
+        { id: "a", name: "Shawarma" },
+        { id: "b", name: "Hummus" },
+        { id: "c", name: "Mixed Grill" },
+      ],
+    })[0].content;
+    expect(system).toMatch(/assigned subject/i);
+    expect(system).not.toMatch(/consecutive generations must not/i);
+    expect(system).not.toMatch(/at random from the whole/i);
+  });
+
+  it("uses default rules in the system message when no assignedItems are provided", () => {
+    const system = buildPrompt({ snapshot: JOES })[0].content;
+    expect(system).toMatch(/equal weight/i);
+    expect(system).not.toMatch(/assigned subject/i);
   });
 
   it("says shop notes override the rest of the prompt", () => {
