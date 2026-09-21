@@ -2,6 +2,7 @@ import Link from "next/link";
 import { list } from "@/lib/business-repo";
 import { db } from "@/lib/db";
 import { BusinessList } from "./BusinessList";
+import { Button } from "@/components/ui/button";
 
 export default async function AdminPage() {
   const rows = await list(db);
@@ -9,12 +10,9 @@ export default async function AdminPage() {
     <main>
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-semibold">Admin</h1>
-        <Link
-          href="/admin/businesses/new"
-          className="border border-zinc-200 px-3 py-1 text-sm"
-        >
-          New business
-        </Link>
+        <Button asChild variant="outline">
+          <Link href="/admin/businesses/new">+ New business</Link>
+        </Button>
       </div>
       <BusinessList businesses={rows} />
     </main>

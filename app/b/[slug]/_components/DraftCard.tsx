@@ -9,7 +9,7 @@ type Props = {
 
 export function DraftCard({ text, copied = false, onCopy = () => {} }: Props) {
   return (
-    <article className="border-y border-zinc-200 py-4">
+    <article className="rounded-lg border border-zinc-200 bg-white px-4 py-4 shadow-sm">
       <div className="flex items-center justify-between">
         <StarRow />
         <CopyButton text={text} copied={copied} onCopied={onCopy} />
