@@ -57,6 +57,19 @@ describe("buildPrompt", () => {
     expect(text).toContain("mention the garlic knots");
   });
 
+  it("tells the model to sample across shop notes, not the first item", () => {
+    const text = promptText(
+      buildPrompt({
+        snapshot: JOES,
+        customInstructions:
+          "Shawarma platter, mixed grill, baklava, mint tea",
+      }),
+    );
+    expect(text).toMatch(/do not fixate on whatever appears first/i);
+    expect(text).toMatch(/different stretch of the shop notes/i);
+    expect(text).toMatch(/do not default to the first item/i);
+  });
+
   it("still produces a prompt when reviews are missing", () => {
     const { reviews: _reviews, ...noReviews } = JOES;
     const messages = buildPrompt({ snapshot: noReviews });
