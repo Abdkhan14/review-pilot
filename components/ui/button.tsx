@@ -1,4 +1,4 @@
-import { forwardRef } from "react";
+import { Children, cloneElement, forwardRef, isValidElement } from "react";
 
 type Variant = "default" | "outline" | "ghost";
 
@@ -15,7 +15,7 @@ type AnchorProps = React.AnchorHTMLAttributes<HTMLAnchorElement> & {
 type Props = ButtonProps | AnchorProps;
 
 const base =
-  "inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none px-4 py-2";
+  "inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors cursor-pointer disabled:opacity-50 disabled:pointer-events-none px-4 py-2";
 
 const variants: Record<Variant, string> = {
   default: "bg-zinc-900 text-zinc-50 hover:bg-zinc-700",
@@ -24,23 +24,26 @@ const variants: Record<Variant, string> = {
 };
 
 export const Button = forwardRef<HTMLButtonElement | HTMLAnchorElement, Props>(
-  ({ variant = "default", asChild, className = "", ...props }, ref) => {
+  ({ variant = "default", asChild, className = "", children, ...props }, ref) => {
     const cls = `${base} ${variants[variant]} ${className}`;
     if (asChild) {
-      return (
-        <a
-          ref={ref as React.Ref<HTMLAnchorElement>}
-          className={cls}
-          {...(props as React.AnchorHTMLAttributes<HTMLAnchorElement>)}
-        />
-      );
+      const child = Children.only(children);
+      if (!isValidElement<{ className?: string }>(child)) {
+        throw new Error("Button asChild requires a single React element child");
+      }
+      return cloneElement(child, {
+        ...(props as object),
+        className: `${cls} ${child.props.className ?? ""}`.trim(),
+      });
     }
     return (
       <button
         ref={ref as React.Ref<HTMLButtonElement>}
         className={cls}
         {...(props as React.ButtonHTMLAttributes<HTMLButtonElement>)}
-      />
+      >
+        {children}
+      </button>
     );
   }
 );
