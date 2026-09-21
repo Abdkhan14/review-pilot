@@ -4,6 +4,7 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { DraftCard } from "./DraftCard";
 import { Alert } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
 
 const list = {
   hidden: {},
@@ -63,12 +64,13 @@ export function DraftPicker({ drafts, writeReviewUrl, generateFailed = false }: 
         <p className="text-center text-sm text-zinc-400">OR</p>
       )}
 
-      <a
-        href={writeReviewUrl}
-        className="block w-full border border-zinc-200 px-4 py-3 text-center text-sm font-medium hover:bg-zinc-50 transition-colors"
+      <Button
+        asChild
+        variant="outline"
+        className="w-full py-3"
       >
-        {linkLabel}
-      </a>
+        <a href={writeReviewUrl}>{linkLabel}</a>
+      </Button>
     </div>
   );
 }

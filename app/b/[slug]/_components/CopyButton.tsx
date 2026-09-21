@@ -21,7 +21,7 @@ export function CopyButton({ text, copied, onCopied }: Props) {
       type="button"
       aria-label={copied ? "Copied" : "Copy review"}
       onClick={handleClick}
-      className="p-1 text-zinc-400 hover:text-zinc-700 transition-colors"
+      className="inline-flex items-center justify-center p-1 text-zinc-400 hover:text-zinc-700 transition-colors cursor-pointer"
     >
       {copied ? (
         // Check icon
