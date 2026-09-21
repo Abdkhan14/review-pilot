@@ -8,12 +8,12 @@ import { Alert } from "@/components/ui/alert";
 const list = {
   hidden: {},
   show: { transition: { staggerChildren: 0.08 } },
-};
+} as const;
 
 const card = {
   hidden: { opacity: 0, y: 14 },
   show: { opacity: 1, y: 0, transition: { duration: 0.25, ease: "easeOut" } },
-};
+} as const;
 
 type Draft = { id: string; text: string };
 
