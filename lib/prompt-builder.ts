@@ -67,6 +67,8 @@ function systemMessage(angles: readonly string[], starIntent: number): string {
     "- No exclamation marks — they read as fake",
     "- No filler phrases like 'I highly recommend', 'definitely recommend', 'five stars', 'absolutely', 'amazing', or 'fantastic'",
     "- Vary sentence length. Sound like a real person dashing off a review, not an AI or a marketing writer",
+    "- If shop notes list several items, dishes, or details, treat them as a pool — do not fixate on whatever appears first",
+    "- Each of the three reviews must draw from a different stretch of the shop notes (early, middle, and later). Do not mention the same item in every review",
     "",
     "Return JSON only, this shape:",
     `{ "reviews": [ { "id": "a", "angle": "${a}", "text": "..." }, { "id": "b", "angle": "${b}", "text": "..." }, { "id": "c", "angle": "${c}", "text": "..." } ] }`,
@@ -96,7 +98,11 @@ function userMessage(input: BuildPromptInput): string {
 
   const notes = customInstructions?.trim();
   if (notes) {
-    lines.push("", "Shop notes:", notes);
+    lines.push(
+      "",
+      "Shop notes (use the whole list as a pool — do not default to the first item):",
+      notes,
+    );
   }
 
   const reviews = snapshot.reviews?.filter((r) => r.text.trim() !== "") ?? [];
