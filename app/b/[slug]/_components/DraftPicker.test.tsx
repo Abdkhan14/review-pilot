@@ -71,6 +71,21 @@ describe("DraftPicker", () => {
     expect(screen.queryByText(/couldn't generate/i)).toBeNull();
   });
 
+  it("shows rate-limited message when rateLimited is true and drafts are empty", () => {
+    render(
+      <DraftPicker drafts={[]} writeReviewUrl={REVIEW_URL} rateLimited />
+    );
+    expect(screen.getByText(/wait 30 seconds/i)).toBeDefined();
+    expect(screen.queryByText(/couldn't generate/i)).toBeNull();
+  });
+
+  it("does not show rate-limited message when drafts are present", () => {
+    render(
+      <DraftPicker drafts={DRAFTS} writeReviewUrl={REVIEW_URL} rateLimited />
+    );
+    expect(screen.queryByText(/wait 30 seconds/i)).toBeNull();
+  });
+
   it("clicking copy on card 2 calls clipboard with card 2 text", async () => {
     render(<DraftPicker drafts={DRAFTS} writeReviewUrl={REVIEW_URL} />);
     const copyButtons = screen.getAllByRole("button", { name: /copy review/i });

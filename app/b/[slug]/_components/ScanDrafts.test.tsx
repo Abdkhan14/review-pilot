@@ -22,10 +22,16 @@ beforeEach(() => {
 });
 
 describe("ScanDrafts", () => {
-  it("shows skeletons before the generate request resolves", () => {
+  it("shows the generate progress list before the request resolves", () => {
     mockPost.mockReturnValue(new Promise(() => {}));
     render(<ScanDrafts slug="joes-pizza-ab12" writeReviewUrl={REVIEW_URL} />);
-    expect(screen.getByTestId("drafts-skeleton")).toBeDefined();
+    expect(screen.getByTestId("generate-progress")).toBeDefined();
+  });
+
+  it("shows step 1 copy while loading", () => {
+    mockPost.mockReturnValue(new Promise(() => {}));
+    render(<ScanDrafts slug="joes-pizza-ab12" writeReviewUrl={REVIEW_URL} />);
+    expect(screen.getByText(/finding the place you visited/i)).toBeDefined();
   });
 
   it("posts to the generate API for the slug", async () => {
@@ -38,13 +44,13 @@ describe("ScanDrafts", () => {
     );
   });
 
-  it("renders drafts after a successful generate", async () => {
+  it("renders drafts after a successful generate and removes the progress list", async () => {
     mockPost.mockResolvedValue({
       data: { reviews: REVIEWS, writeReviewUrl: REVIEW_URL },
     });
     render(<ScanDrafts slug="joes-pizza-ab12" writeReviewUrl={REVIEW_URL} />);
     expect(await screen.findByText("Great pasta!")).toBeDefined();
-    expect(screen.queryByTestId("drafts-skeleton")).toBeNull();
+    expect(screen.queryByTestId("generate-progress")).toBeNull();
   });
 
   it("shows the generate-failed message on a 500", async () => {
@@ -53,12 +59,10 @@ describe("ScanDrafts", () => {
     expect(await screen.findByText(/couldn't generate/i)).toBeDefined();
   });
 
-  it("does not show the generate-failed message on a 429", async () => {
+  it("shows the rate-limited message on a 429", async () => {
     mockPost.mockRejectedValue({ response: { status: 429 } });
     render(<ScanDrafts slug="joes-pizza-ab12" writeReviewUrl={REVIEW_URL} />);
-    expect(
-      await screen.findByRole("link", { name: /skip to google reviews/i })
-    ).toBeDefined();
+    expect(await screen.findByText(/wait 30 seconds/i)).toBeDefined();
     expect(screen.queryByText(/couldn't generate/i)).toBeNull();
   });
 });
