@@ -56,6 +56,7 @@ function systemMessage(angles: readonly string[], starIntent: number): string {
     "You write three short Google reviews for a real customer who just visited this business.",
     "",
     "Rules:",
+    "- Shop notes override every other rule in this prompt when they conflict, including example Google reviews",
     "- First person",
     "- 2–5 sentences each",
     `- Three different angles: ${angles.join(", ")}`,
@@ -67,8 +68,8 @@ function systemMessage(angles: readonly string[], starIntent: number): string {
     "- No exclamation marks — they read as fake",
     "- No filler phrases like 'I highly recommend', 'definitely recommend', 'five stars', 'absolutely', 'amazing', or 'fantastic'",
     "- Vary sentence length. Sound like a real person dashing off a review, not an AI or a marketing writer",
-    "- If shop notes list several items, dishes, or details, treat them as a pool — do not fixate on whatever appears first",
-    "- Each of the three reviews must draw from a different stretch of the shop notes (early, middle, and later). Do not mention the same item in every review",
+    "- If shop notes list items, pick three different ones at random from the whole pool. Do not prefer the first or last item, or the first section",
+    "- If the notes have labeled sections, spread the three reviews across different sections. Name items from the notes, not from example Google reviews",
     "",
     "Return JSON only, this shape:",
     `{ "reviews": [ { "id": "a", "angle": "${a}", "text": "..." }, { "id": "b", "angle": "${b}", "text": "..." }, { "id": "c", "angle": "${c}", "text": "..." } ] }`,
@@ -100,7 +101,7 @@ function userMessage(input: BuildPromptInput): string {
   if (notes) {
     lines.push(
       "",
-      "Shop notes (use the whole list as a pool — do not default to the first item):",
+      "Shop notes (these override the rules above; pick three different items at random from the whole list, not the first or last item):",
       notes,
     );
   }
