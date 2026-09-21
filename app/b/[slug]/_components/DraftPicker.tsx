@@ -22,9 +22,10 @@ type Props = {
   drafts: Draft[];
   writeReviewUrl: string;
   generateFailed?: boolean;
+  rateLimited?: boolean;
 };
 
-export function DraftPicker({ drafts, writeReviewUrl, generateFailed = false }: Props) {
+export function DraftPicker({ drafts, writeReviewUrl, generateFailed = false, rateLimited = false }: Props) {
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
   const visibleDrafts = copiedId
@@ -36,10 +37,16 @@ export function DraftPicker({ drafts, writeReviewUrl, generateFailed = false }: 
 
   return (
     <div className="flex flex-col gap-4" data-testid="draft-picker">
+      {rateLimited && drafts.length === 0 && (
+        <Alert variant="default">
+          You&apos;ve generated a few times in a row — wait 30 seconds and try
+          again, or skip straight to Google.
+        </Alert>
+      )}
       {generateFailed && drafts.length === 0 && (
         <Alert variant="default">
-          Couldn't generate review drafts — you can still write your own or skip
-          straight to Google.
+          Couldn&apos;t generate review drafts — you can still write your own or
+          skip straight to Google.
         </Alert>
       )}
 

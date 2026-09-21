@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { api } from "@/hooks/api";
-import { DraftsSkeleton } from "./DraftsSkeleton";
+import { GenerateProgress } from "./DraftsSkeleton";
 import { DraftPicker } from "./DraftPicker";
+import { stepIndexAt, progressPctAt } from "@/lib/generate-progress";
 
 type Draft = { id: string; text: string };
 
@@ -22,6 +23,19 @@ export function ScanDrafts({ slug, writeReviewUrl }: Props) {
   const [url, setUrl] = useState(writeReviewUrl);
   const [loading, setLoading] = useState(true);
   const [generateFailed, setGenerateFailed] = useState(false);
+  const [rateLimited, setRateLimited] = useState(false);
+  const [elapsedMs, setElapsedMs] = useState(0);
+  // Captured at component mount — the timer counts from when the user lands.
+  const startRef = useRef<number>(Date.now());
+
+  // Tick every 100ms while loading; clears automatically when loading ends.
+  useEffect(() => {
+    if (!loading) return;
+    const id = setInterval(() => {
+      setElapsedMs(Date.now() - startRef.current);
+    }, 100);
+    return () => clearInterval(id);
+  }, [loading]);
 
   useEffect(() => {
     let cancelled = false;
@@ -39,8 +53,9 @@ export function ScanDrafts({ slug, writeReviewUrl }: Props) {
         if (cancelled) return;
         const status = (err as { response?: { status?: number } })?.response
           ?.status;
-        // Rate limit: skip link still works, no error banner.
-        setGenerateFailed(status !== 429);
+        const isRateLimited = status === 429;
+        setRateLimited(isRateLimited);
+        setGenerateFailed(!isRateLimited);
         setDrafts([]);
       } finally {
         if (!cancelled) setLoading(false);
@@ -53,13 +68,21 @@ export function ScanDrafts({ slug, writeReviewUrl }: Props) {
     };
   }, [slug]);
 
-  if (loading) return <DraftsSkeleton />;
+  if (loading) {
+    return (
+      <GenerateProgress
+        activeIndex={stepIndexAt(elapsedMs)}
+        progressPct={progressPctAt(elapsedMs)}
+      />
+    );
+  }
 
   return (
     <DraftPicker
       drafts={drafts}
       writeReviewUrl={url}
       generateFailed={generateFailed}
+      rateLimited={rateLimited}
     />
   );
 }

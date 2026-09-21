@@ -1,27 +1,46 @@
-function SkeletonCard() {
-  return (
-    <div className="rounded-lg border border-zinc-200 bg-white px-4 py-4 shadow-sm animate-pulse">
-      <div className="flex items-center justify-between">
-        <div className="h-4 w-24 rounded bg-zinc-200" />
-        <div className="h-7 w-7 rounded bg-zinc-200" />
-      </div>
-      <div className="mt-3 space-y-2">
-        <div className="h-3 w-full rounded bg-zinc-100" />
-        <div className="h-3 w-full rounded bg-zinc-100" />
-        <div className="h-3 w-5/6 rounded bg-zinc-100" />
-        <div className="h-3 w-5/6 rounded bg-zinc-100" />
-        <div className="h-3 w-4/6 rounded bg-zinc-100" />
-      </div>
-    </div>
-  );
-}
+import { GENERATE_STEPS } from "@/lib/generate-progress";
 
-export function DraftsSkeleton() {
+type Props = {
+  activeIndex?: number;
+  progressPct?: number;
+};
+
+/**
+ * Presentational progress list shown while drafts are being generated.
+ * Frozen at step 0 in loading.tsx; driven by a timer in ScanDrafts.
+ */
+export function GenerateProgress({ activeIndex = 0, progressPct = 0 }: Props) {
   return (
-    <div className="flex flex-col gap-4" data-testid="drafts-skeleton">
-      <SkeletonCard />
-      <SkeletonCard />
-      <SkeletonCard />
+    <div data-testid="generate-progress" className="flex flex-col gap-8">
+      <ol className="flex flex-col gap-3">
+        {GENERATE_STEPS.map((step, i) => {
+          const isDone = i < activeIndex;
+          const isActive = i === activeIndex;
+          return (
+            <li
+              key={step}
+              className={`text-sm transition-colors duration-300 ${
+                isDone
+                  ? "text-zinc-400"
+                  : isActive
+                  ? "text-zinc-900"
+                  : "text-zinc-300"
+              }`}
+            >
+              <span className="mr-2 tabular-nums">{i + 1}.</span>
+              {step}
+            </li>
+          );
+        })}
+      </ol>
+
+      {/* Thin fill bar — completes over GENERATE_PROGRESS_MS, holds at full */}
+      <div className="h-1 w-full overflow-hidden rounded-full bg-zinc-100">
+        <div
+          className="h-full bg-zinc-400 transition-all duration-100 ease-linear"
+          style={{ width: `${progressPct}%` }}
+        />
+      </div>
     </div>
   );
 }
