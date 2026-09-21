@@ -72,7 +72,6 @@ function systemMessage(angles: readonly string[], starIntent: number): string {
     "- Treat every listed item as equal weight. A phrase that appears more than once is not more important",
     "- Do not default to the shop's most distinctive or most-mentioned specialty",
     "- If the notes have labeled sections, spread the three reviews across different sections. Name items from the notes, not from example Google reviews",
-    "- Do not reuse the subject matter of the example Google reviews",
     "- Never mention the same item in more than one of the three reviews",
     "- Consecutive generations must not talk about the same items. Each generate, choose a fresh set — do not default to the items you would typically pick",
     "",
@@ -111,15 +110,21 @@ function userMessage(input: BuildPromptInput): string {
     );
   }
 
-  const reviews = snapshot.reviews?.filter((r) => r.text.trim() !== "") ?? [];
-  if (reviews.length > 0) {
-    lines.push(
-      "",
-      "Existing Google reviews (examples only — do not copy):",
-      ...reviews.map(
-        (r) => `- ${r.rating} stars, ${r.relativeTime}: ${r.text}`,
-      ),
-    );
+  // Only include example Google reviews when there are no shop notes.
+  // When notes are present they are the item pool; adding Google reviews
+  // causes the model to systematically avoid those subjects and land on
+  // whatever is left (e.g. the veg platter).
+  if (!notes) {
+    const reviews = snapshot.reviews?.filter((r) => r.text.trim() !== "") ?? [];
+    if (reviews.length > 0) {
+      lines.push(
+        "",
+        "Existing Google reviews (examples only — do not copy):",
+        ...reviews.map(
+          (r) => `- ${r.rating} stars, ${r.relativeTime}: ${r.text}`,
+        ),
+      );
+    }
   }
 
   return lines.join("\n");

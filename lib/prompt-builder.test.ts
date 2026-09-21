@@ -110,7 +110,23 @@ describe("buildPrompt", () => {
     );
     expect(text).toMatch(/equal weight/i);
     expect(text).toMatch(/most distinctive or most-mentioned specialty/i);
-    expect(text).toMatch(/subject matter of the example Google reviews/i);
+  });
+
+  it("omits example Google reviews when shop notes are present", () => {
+    const text = promptText(
+      buildPrompt({
+        snapshot: JOES,
+        customInstructions: "mention the garlic knots",
+      }),
+    );
+    expect(text).not.toContain(EXAMPLES_HEADING);
+    expect(text).not.toContain("Best pepperoni in the neighborhood.");
+  });
+
+  it("includes example Google reviews when no shop notes are present", () => {
+    const text = promptText(buildPrompt({ snapshot: JOES }));
+    expect(text).toContain(EXAMPLES_HEADING);
+    expect(text).toContain("Best pepperoni in the neighborhood.");
   });
 
   it("still produces a prompt when reviews are missing", () => {
