@@ -9,6 +9,10 @@ import { ipFromHeaders, rateLimitKey, checkRateLimit } from "@/lib/rate-limit";
 import type { PlaceSnapshot } from "@/lib/place-snapshot";
 import type { DraftReview } from "@/lib/generate-drafts";
 import { DraftPicker } from "./_components/DraftPicker";
+
+/** Do not prerender — slug lookup, rate limit, and OpenAI drafts must run per scan. */
+export const dynamic = "force-dynamic";
+
 export default async function ScanPage({
   params,
 }: {
