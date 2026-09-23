@@ -10,6 +10,7 @@ type Props = {
   id: string;
   name: string;
   slug: string;
+  scanUrl: string;
   initialTier: "BASIC" | "SAAS";
   initialCustomInstructions: string | null;
 };
@@ -18,6 +19,7 @@ export default function EditBusinessForm({
   id,
   name,
   slug,
+  scanUrl,
   initialTier,
   initialCustomInstructions,
 }: Props) {
@@ -62,6 +64,21 @@ export default function EditBusinessForm({
       <div>
         <p className="text-sm font-medium text-zinc-500">Slug</p>
         <p className="mt-1 font-mono text-sm text-zinc-500">{slug}</p>
+      </div>
+
+      <div>
+        <p className="text-sm font-medium text-zinc-500">Test link</p>
+        <p className="mt-1 text-xs text-zinc-500">
+          Scanning the QR code opens this page.
+        </p>
+        <a
+          href={scanUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="mt-1 block break-all font-mono text-sm text-zinc-700 underline"
+        >
+          {scanUrl}
+        </a>
       </div>
 
       <label htmlFor="tier" className="text-sm font-medium">
