@@ -18,9 +18,8 @@ export default async function EditBusinessPage({
   const business = await findById(db, id);
   if (!business) notFound();
 
-  const svg = await encodeQrSvg(
-    buildScanUrl(process.env.APP_URL ?? "", business.slug)
-  );
+  const scanUrl = buildScanUrl(process.env.APP_URL ?? "", business.slug);
+  const svg = await encodeQrSvg(scanUrl);
 
   return (
     <main>
@@ -29,6 +28,7 @@ export default async function EditBusinessPage({
         id={business.id}
         name={business.name}
         slug={business.slug}
+        scanUrl={scanUrl}
         initialTier={business.tier as "BASIC" | "SAAS"}
         initialCustomInstructions={business.customInstructions ?? null}
       />
