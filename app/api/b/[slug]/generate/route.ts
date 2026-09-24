@@ -2,12 +2,16 @@ import "server-only";
 import { NextRequest, NextResponse } from "next/server";
 import { findBySlug } from "@/lib/business-repo";
 import { db } from "@/lib/db";
-import { buildPrompt } from "@/lib/prompt-builder";
+import { buildPrompt, anglesForPrimaryType } from "@/lib/prompt-builder";
 import { generateDrafts, GenerationError } from "@/lib/generate-drafts";
 import { ipFromHeaders, rateLimitKey, checkRateLimit } from "@/lib/rate-limit";
 import { parseCatalog, sampleItems, DRAFT_COUNT } from "@/lib/catalog-items";
+import { sampleRecipeTrio } from "@/lib/review-recipe";
+import { applyTexture } from "@/lib/review-texture";
 import type { PlaceSnapshot } from "@/lib/place-snapshot";
-import type { AssignedItem } from "@/lib/prompt-builder";
+
+const DRAFT_IDS = ["a", "b", "c"] as const;
+type DraftId = (typeof DRAFT_IDS)[number];
 
 function snapshotFromBusiness(business: {
   details: string | null;
@@ -44,40 +48,51 @@ export async function POST(
   }
 
   const snapshot = snapshotFromBusiness(business);
-
   const rawNotes = business.customInstructions ?? undefined;
 
-  // Parse the catalog once. When items are assignable we send only the prose
-  // to the model — not the full item list — to keep the prompt short and
-  // prevent the model from gravitating to salient catalog entries.
+  // Parse the catalog once. Send only prose to the model — not the full item
+  // list — to keep each prompt short and prevent gravitating to salient entries.
   let promptNotes: string | undefined = rawNotes;
-  let assignedItems: AssignedItem[] | undefined;
+  let itemNames: string[] = [];
 
   if (rawNotes) {
     const catalog = parseCatalog(rawNotes);
     const names = sampleItems(catalog, DRAFT_COUNT);
     if (names.length > 0) {
-      assignedItems = names.map((name, i) => ({
-        id: String.fromCharCode(97 + i) as AssignedItem["id"],
-        name,
-      }));
-      // Only pass prose override guidance; the full item list is not needed.
+      itemNames = names;
       promptNotes = catalog.prose || undefined;
     }
   }
 
-  const messages = buildPrompt({
-    snapshot,
-    customInstructions: promptNotes,
-    assignedItems,
+  const angles = anglesForPrimaryType(snapshot.primaryType);
+  const recipes = sampleRecipeTrio();
+
+  const messagesList = DRAFT_IDS.map((id, i) => {
+    const recipe = recipes[i];
+    const assignedItem =
+      itemNames[i] && recipe.item !== "skip" ? itemNames[i] : undefined;
+    return buildPrompt({
+      id: id as DraftId,
+      snapshot,
+      angle: angles[i],
+      recipe,
+      assignedItem,
+      customInstructions: promptNotes,
+    });
   });
 
   try {
-    const reviews = await generateDrafts(messages);
-    return NextResponse.json({
-      reviews,
-      writeReviewUrl: business.writeReviewUrl,
+    const drafts = await generateDrafts(messagesList);
+
+    // Apply light texture post-pass to at most one draft (enforced by sampleRecipeTrio).
+    const reviews = drafts.map((draft, i) => {
+      const texture = recipes[i].texture;
+      return texture !== "clean"
+        ? { ...draft, text: applyTexture(draft.text, texture) }
+        : draft;
     });
+
+    return NextResponse.json({ reviews, writeReviewUrl: business.writeReviewUrl });
   } catch (err) {
     if (err instanceof GenerationError) {
       return NextResponse.json({ error: "generation failed" }, { status: 500 });

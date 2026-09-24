@@ -13,24 +13,27 @@ vi.mock("openai", () => ({
 
 import { generateDrafts, GenerationError } from "./generate-drafts";
 
-function stubCreate(content: string) {
-  mockCreate.mockResolvedValueOnce({
-    choices: [{ message: { content } }],
-  });
+// Per-call JSON shape: a single draft object (not a "reviews" array).
+function draftJson(id: string, angle: string, text: string): string {
+  return JSON.stringify({ id, angle, text });
 }
 
-const THREE_DRAFTS = JSON.stringify({
-  reviews: [
-    { id: "a", angle: "food", text: "Great pizza!" },
-    { id: "b", angle: "service", text: "Friendly staff." },
-    { id: "c", angle: "vibe", text: "Lovely atmosphere." },
-  ],
-});
+const DRAFT_A = draftJson("a", "food", "Great pizza!");
+const DRAFT_B = draftJson("b", "service", "Friendly staff.");
+const DRAFT_C = draftJson("c", "vibe", "Lovely atmosphere.");
 
-const MESSAGES = [
-  { role: "system" as const, content: "You write reviews." },
-  { role: "user" as const, content: "Shop: Joe's Pizza" },
+// generateDrafts now accepts an array of message arrays (one per draft).
+const MESSAGES_LIST = [
+  [{ role: "system" as const, content: "Draft a." }, { role: "user" as const, content: "Shop" }],
+  [{ role: "system" as const, content: "Draft b." }, { role: "user" as const, content: "Shop" }],
+  [{ role: "system" as const, content: "Draft c." }, { role: "user" as const, content: "Shop" }],
 ];
+
+function stubCreates(...payloads: string[]) {
+  for (const p of payloads) {
+    mockCreate.mockResolvedValueOnce({ choices: [{ message: { content: p } }] });
+  }
+}
 
 describe("generateDrafts", () => {
   beforeEach(() => {
@@ -38,53 +41,66 @@ describe("generateDrafts", () => {
     process.env.OPENAI_API_KEY = "test-key";
   });
 
-  it("returns three DraftReview objects from a mocked SDK response", async () => {
-    stubCreate(THREE_DRAFTS);
-    const drafts = await generateDrafts(MESSAGES);
+  it("returns three DraftReview objects, one per messages array", async () => {
+    stubCreates(DRAFT_A, DRAFT_B, DRAFT_C);
+    const drafts = await generateDrafts(MESSAGES_LIST);
     expect(drafts).toHaveLength(3);
     expect(drafts[0]).toMatchObject({ id: "a", angle: "food", text: "Great pizza!" });
     expect(drafts[1]).toMatchObject({ id: "b", angle: "service" });
     expect(drafts[2]).toMatchObject({ id: "c", angle: "vibe" });
   });
 
-  it("throws GenerationError when the model returns malformed JSON", async () => {
-    stubCreate("not json at all £££");
-    await expect(generateDrafts(MESSAGES)).rejects.toBeInstanceOf(GenerationError);
+  it("makes exactly 3 API calls — one per messages array", async () => {
+    stubCreates(DRAFT_A, DRAFT_B, DRAFT_C);
+    await generateDrafts(MESSAGES_LIST);
+    expect(mockCreate).toHaveBeenCalledTimes(3);
+  });
+
+  it("passes the correct messages to each API call", async () => {
+    stubCreates(DRAFT_A, DRAFT_B, DRAFT_C);
+    await generateDrafts(MESSAGES_LIST);
+    expect(mockCreate.mock.calls[0][0].messages).toEqual(MESSAGES_LIST[0]);
+    expect(mockCreate.mock.calls[1][0].messages).toEqual(MESSAGES_LIST[1]);
+    expect(mockCreate.mock.calls[2][0].messages).toEqual(MESSAGES_LIST[2]);
+  });
+
+  it("throws GenerationError when one draft returns malformed JSON", async () => {
+    stubCreates("not json £££", DRAFT_B, DRAFT_C);
+    await expect(generateDrafts(MESSAGES_LIST)).rejects.toBeInstanceOf(GenerationError);
   });
 
   it("does not include the garbage payload in the GenerationError message", async () => {
-    const garbage = "not json at all £££";
-    stubCreate(garbage);
-    const err = await generateDrafts(MESSAGES).catch((e) => e);
+    const garbage = "not json £££";
+    stubCreates(garbage, DRAFT_B, DRAFT_C);
+    const err = await generateDrafts(MESSAGES_LIST).catch((e) => e);
     expect(err).toBeInstanceOf(GenerationError);
     expect(err.message).not.toContain(garbage);
   });
 
-  it("throws GenerationError when reviews array is missing", async () => {
-    stubCreate(JSON.stringify({ something: "else" }));
-    await expect(generateDrafts(MESSAGES)).rejects.toBeInstanceOf(GenerationError);
-  });
-
-  it("throws GenerationError when fewer than three reviews are returned", async () => {
-    stubCreate(
-      JSON.stringify({
-        reviews: [{ id: "a", angle: "food", text: "Only one." }],
-      }),
-    );
-    await expect(generateDrafts(MESSAGES)).rejects.toBeInstanceOf(GenerationError);
+  it("throws GenerationError when a draft is missing required fields", async () => {
+    stubCreates(JSON.stringify({ something: "else" }), DRAFT_B, DRAFT_C);
+    await expect(generateDrafts(MESSAGES_LIST)).rejects.toBeInstanceOf(GenerationError);
   });
 
   it("throws when OPENAI_API_KEY is not set", async () => {
     delete process.env.OPENAI_API_KEY;
-    await expect(generateDrafts(MESSAGES)).rejects.toThrow(/OPENAI_API_KEY/);
+    await expect(generateDrafts(MESSAGES_LIST)).rejects.toThrow(/OPENAI_API_KEY/);
   });
 
   it("uses gpt-4.1-nano by default when OPENAI_MODEL is unset", async () => {
     delete process.env.OPENAI_MODEL;
-    stubCreate(THREE_DRAFTS);
-    await generateDrafts(MESSAGES);
-    expect(mockCreate).toHaveBeenCalledWith(
-      expect.objectContaining({ model: "gpt-4.1-nano" })
-    );
+    stubCreates(DRAFT_A, DRAFT_B, DRAFT_C);
+    await generateDrafts(MESSAGES_LIST);
+    for (const call of mockCreate.mock.calls) {
+      expect(call[0]).toMatchObject({ model: "gpt-4.1-nano" });
+    }
+  });
+
+  it("sets frequency_penalty and presence_penalty on each call", async () => {
+    stubCreates(DRAFT_A, DRAFT_B, DRAFT_C);
+    await generateDrafts(MESSAGES_LIST);
+    for (const call of mockCreate.mock.calls) {
+      expect(call[0]).toMatchObject({ frequency_penalty: 0.5, presence_penalty: 0.3 });
+    }
   });
 });
