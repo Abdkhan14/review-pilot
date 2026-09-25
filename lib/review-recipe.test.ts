@@ -102,7 +102,7 @@ describe("sampleRecipeTrio", () => {
     }
   });
 
-  it("fewer than half of trios contain a swap typo (80% clean rate)", () => {
+  it("fewer than half of trios contain a swap typo (70% clean rate)", () => {
     let swapTrios = 0;
     const TRIALS = 500;
     for (let seed = 0; seed < TRIALS; seed++) {
