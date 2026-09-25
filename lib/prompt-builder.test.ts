@@ -32,6 +32,7 @@ const BASE_RECIPE: ReviewRecipe = {
   item: "must",
   proseFact: "forbid",
   texture: "clean",
+  typo: "clean",
 };
 
 const BASE_INPUT: BuildPromptInput = {
