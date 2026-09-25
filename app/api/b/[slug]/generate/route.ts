@@ -7,7 +7,7 @@ import { generateDrafts, GenerationError } from "@/lib/generate-drafts";
 import { ipFromHeaders, rateLimitKey, checkRateLimit } from "@/lib/rate-limit";
 import { parseCatalog, sampleItems, DRAFT_COUNT } from "@/lib/catalog-items";
 import { sampleRecipeTrio } from "@/lib/review-recipe";
-import { applyTexture } from "@/lib/review-texture";
+import { applyTexture, applyTypo } from "@/lib/review-texture";
 import type { PlaceSnapshot } from "@/lib/place-snapshot";
 
 const DRAFT_IDS = ["a", "b", "c"] as const;
@@ -85,11 +85,17 @@ export async function POST(
     const drafts = await generateDrafts(messagesList);
 
     // Apply light texture post-pass to at most one draft (enforced by sampleRecipeTrio).
+    // Then apply a rare one-word typo swap (also at most one draft, never the
+    // same draft as the texture slip).
     const reviews = drafts.map((draft, i) => {
-      const texture = recipes[i].texture;
-      return texture !== "clean"
-        ? { ...draft, text: applyTexture(draft.text, texture) }
-        : draft;
+      const recipe = recipes[i];
+      const assignedItem = itemNames[i];
+      const protectedStrings = [snapshot.name, ...(assignedItem ? [assignedItem] : [])];
+
+      let text = draft.text;
+      if (recipe.texture !== "clean") text = applyTexture(text, recipe.texture);
+      if (recipe.typo !== "clean") text = applyTypo(text, recipe.typo, protectedStrings);
+      return text !== draft.text ? { ...draft, text } : draft;
     });
 
     return NextResponse.json({ reviews, writeReviewUrl: business.writeReviewUrl });

@@ -17,12 +17,15 @@ vi.mock("@/lib/prompt-builder", () => ({
 }));
 vi.mock("@/lib/review-recipe", () => ({
   sampleRecipeTrio: vi.fn(() => [
-    { length: "short", voice: "specific", opener: "i_first", item: "must", proseFact: "forbid", texture: "clean" },
-    { length: "medium", voice: "hedged", opener: "i_first", item: "optional", proseFact: "forbid", texture: "clean" },
-    { length: "short", voice: "clipped", opener: "i_first", item: "skip", proseFact: "allow", texture: "clean" },
+    { length: "short", voice: "specific", opener: "i_first", item: "must", proseFact: "forbid", texture: "clean", typo: "clean" },
+    { length: "medium", voice: "hedged", opener: "i_first", item: "optional", proseFact: "forbid", texture: "clean", typo: "clean" },
+    { length: "short", voice: "clipped", opener: "i_first", item: "skip", proseFact: "allow", texture: "clean", typo: "clean" },
   ]),
 }));
-vi.mock("@/lib/review-texture", () => ({ applyTexture: vi.fn((text: string) => text) }));
+vi.mock("@/lib/review-texture", () => ({
+  applyTexture: vi.fn((text: string) => text),
+  applyTypo: vi.fn((text: string) => text),
+}));
 
 import * as repo from "@/lib/business-repo";
 import * as generateDraftsLib from "@/lib/generate-drafts";

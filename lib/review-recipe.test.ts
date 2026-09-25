@@ -29,6 +29,7 @@ describe("sampleRecipeTrio", () => {
       expect(r).toHaveProperty("item");
       expect(r).toHaveProperty("proseFact");
       expect(r).toHaveProperty("texture");
+      expect(r).toHaveProperty("typo");
     }
   });
 
@@ -71,6 +72,44 @@ describe("sampleRecipeTrio", () => {
       const nonCleanCount = recipes.filter((r) => r.texture !== "clean").length;
       expect(nonCleanCount).toBeLessThanOrEqual(1);
     }
+  });
+
+  it("typo field is always 'clean' or 'swap'", () => {
+    for (let seed = 0; seed < 200; seed++) {
+      const recipes = sampleRecipeTrio(makeRng(seed));
+      for (const r of recipes) {
+        expect(["clean", "swap"]).toContain(r.typo);
+      }
+    }
+  });
+
+  it("trio always contains at most one swap typo", () => {
+    for (let seed = 0; seed < 200; seed++) {
+      const recipes = sampleRecipeTrio(makeRng(seed));
+      const swapCount = recipes.filter((r) => r.typo === "swap").length;
+      expect(swapCount).toBeLessThanOrEqual(1);
+    }
+  });
+
+  it("swap typo never appears on the same draft as a non-clean texture", () => {
+    for (let seed = 0; seed < 200; seed++) {
+      const recipes = sampleRecipeTrio(makeRng(seed));
+      for (const r of recipes) {
+        if (r.typo === "swap") {
+          expect(r.texture).toBe("clean");
+        }
+      }
+    }
+  });
+
+  it("fewer than half of trios contain a swap typo (80% clean rate)", () => {
+    let swapTrios = 0;
+    const TRIALS = 500;
+    for (let seed = 0; seed < TRIALS; seed++) {
+      const recipes = sampleRecipeTrio(makeRng(seed));
+      if (recipes.some((r) => r.typo === "swap")) swapTrios++;
+    }
+    expect(swapTrios).toBeLessThan(TRIALS / 2);
   });
 
   it("produces varied output across different seeds", () => {

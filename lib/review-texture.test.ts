@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { applyTexture } from "./review-texture";
+import { applyTexture, applyTypo } from "./review-texture";
 
 const alwaysFirst = () => 0;   // always picks the first candidate / branch
 const alwaysLast = () => 0.99; // always picks the last candidate / branch
@@ -123,5 +123,63 @@ describe("applyTexture", () => {
     it("unknown slip id returns text unchanged", () => {
       expect(applyTexture("Good pizza.", "nonexistent_slip")).toBe("Good pizza.");
     });
+  });
+});
+
+describe("applyTypo", () => {
+  it("returns text unchanged when typo is clean", () => {
+    const text = "The chicken shawarma was really good.";
+    expect(applyTypo(text, "clean")).toBe(text);
+  });
+
+  it("swaps exactly two adjacent interior letters in one eligible word", () => {
+    const text = "The chicken shawarma was really good.";
+    const result = applyTypo(text, "swap", [], alwaysFirst);
+    // The result should differ from the original by exactly one two-char transposition.
+    expect(result).not.toBe(text);
+    // First word should be untouched.
+    expect(result.startsWith("The")).toBe(true);
+  });
+
+  it("never touches the first word of the text", () => {
+    // "really" is the only long enough word other than "chicken" — but "Chicken"
+    // is the first word and must be skipped.
+    const text = "Chicken shawarma is really worth it.";
+    const result = applyTypo(text, "swap", [], alwaysFirst);
+    expect(result.startsWith("Chicken")).toBe(true);
+  });
+
+  it("returns text unchanged when no eligible word exists (all words < 5 letters or only the first word qualifies)", () => {
+    // Only 5-letter word is the first word.
+    const text = "Great food here.";
+    expect(applyTypo(text, "swap")).toBe(text);
+  });
+
+  it("does not touch a word that appears in the protected list", () => {
+    // "Ababia" as the shop name — "really" and "worth" are the eligible words.
+    const text = "The Ababia shawarma is really worth it.";
+    // Protect "Ababia" and "shawarma" — both must remain exactly intact.
+    for (let i = 0; i < 50; i++) {
+      const result = applyTypo(text, "swap", ["Ababia", "shawarma"], () => i / 50);
+      expect(result).toContain("Ababia");   // shop name untouched
+      expect(result).toContain("shawarma"); // assigned item untouched
+    }
+  });
+
+  it("swapped word differs from the original by exactly one transposition of adjacent interior letters", () => {
+    const text = "The chicken was perfectly cooked and really crispy.";
+    const result = applyTypo(text, "swap", [], alwaysFirst);
+    // Find the word that changed.
+    const origWords = text.split(/\b/);
+    const resultWords = result.split(/\b/);
+    const changed = origWords.filter((w, i) => resultWords[i] !== w);
+    expect(changed).toHaveLength(1);
+    const orig = changed[0];
+    const mutated = resultWords[origWords.indexOf(orig)];
+    // Same length: no letters added or removed.
+    expect(mutated.length).toBe(orig.length);
+    // Exactly two positions differ.
+    const diffs = [...orig].filter((ch, i) => ch !== mutated[i]);
+    expect(diffs).toHaveLength(2);
   });
 });

@@ -16,6 +16,8 @@ export type ItemPolicy = "must" | "optional" | "skip";
 export type ProseFactPolicy = "allow" | "forbid";
 /** "clean" or a slip id from textures.json, e.g. "apostrophe_contraction". */
 export type TextureKind = "clean" | string;
+/** "clean" leaves the word intact; "swap" transposes two adjacent interior letters in one word. */
+export type TypoKind = "clean" | "swap";
 
 export type ReviewRecipe = {
   length: LengthBucket;
@@ -24,6 +26,7 @@ export type ReviewRecipe = {
   item: ItemPolicy;
   proseFact: ProseFactPolicy;
   texture: TextureKind;
+  typo: TypoKind;
 };
 
 // ─── Catalogs (derived from JSON) ─────────────────────────────────────────────
@@ -54,6 +57,9 @@ function shuffle<T>(arr: T[], rng: Rng): void {
  * - Exactly one "skip" item policy; the other two are "must" or "optional".
  * - At most one "allow" prose-fact policy.
  * - At most one non-clean texture (30% chance all three are clean).
+ * - At most one "swap" typo (80% chance all three are clean).
+ *   The swap always lands on a texture-clean draft so grammar slip and typo
+ *   never stack on the same review.
  *
  * Every other pick (voice, opener, the non-clean texture id) is independent
  * uniform random with no weighting.
@@ -86,6 +92,20 @@ export function sampleRecipeTrio(rng: Rng = Math.random): [ReviewRecipe, ReviewR
     shuffle(textureSlots, rng);
   }
 
+  // Typo: 0 or 1 swap. 80% chance all three stay clean.
+  // When a swap is added it must land on a texture-clean draft so a grammar
+  // slip and a typo never appear in the same review.
+  const typoSlots: TypoKind[] = ["clean", "clean", "clean"];
+  if (rng() >= 0.8) {
+    const cleanTextureIndices = textureSlots
+      .map((t, i) => (t === "clean" ? i : -1))
+      .filter((i) => i !== -1);
+    if (cleanTextureIndices.length > 0) {
+      const chosen = cleanTextureIndices[Math.floor(rng() * cleanTextureIndices.length)];
+      typoSlots[chosen] = "swap";
+    }
+  }
+
   return [0, 1, 2].map((i) => ({
     length: lengths[i],
     voice: pick(ALL_VOICE_IDS, rng),
@@ -93,5 +113,6 @@ export function sampleRecipeTrio(rng: Rng = Math.random): [ReviewRecipe, ReviewR
     item: itemSlots[i],
     proseFact: proseFactSlots[i],
     texture: textureSlots[i],
+    typo: typoSlots[i],
   })) as [ReviewRecipe, ReviewRecipe, ReviewRecipe];
 }

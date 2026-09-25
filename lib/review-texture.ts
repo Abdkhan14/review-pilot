@@ -267,3 +267,58 @@ export function applyTexture(text: string, texture: string, rng: Rng = Math.rand
   if (!fn) return text;
   return fn(text, rng);
 }
+
+/**
+ * Applies a single interior letter-swap typo to one word in the review.
+ *
+ * - "clean" returns the text unchanged.
+ * - "swap" picks one eligible word (5+ letters, not the first word of the
+ *   text) and swaps two adjacent interior letters (never the first or last
+ *   letter of the word), e.g. "chicken" → "chikcen".
+ * - Words whose lowercased form appears inside any protected string are
+ *   skipped, so the shop name and the assigned catalog item are never touched.
+ * - If no eligible word exists, returns the text unchanged.
+ *
+ * Called on at most one draft per generation and never on a draft that
+ * already has a non-clean texture slip.
+ */
+export function applyTypo(
+  text: string,
+  typo: "clean" | "swap",
+  protected_: string[] = [],
+  rng: Rng = Math.random,
+): string {
+  if (typo === "clean") return text;
+
+  const protectedLower = protected_.map((s) => s.toLowerCase());
+
+  // Collect eligible words: 5+ letters, not the first word.
+  const pattern = /\b([a-zA-Z]{5,})\b/g;
+  const candidates: { start: number; word: string }[] = [];
+  let m: RegExpExecArray | null;
+  while ((m = pattern.exec(text)) !== null) {
+    if (m.index === 0) continue; // first word — protect it
+    const word = m[1];
+    // Skip words that appear inside a protected string.
+    if (protectedLower.some((p) => p.includes(word.toLowerCase()))) continue;
+    candidates.push({ start: m.index, word });
+  }
+
+  if (candidates.length === 0) return text;
+
+  const { start, word } = candidates[Math.floor(rng() * candidates.length)];
+
+  // Adjacent-swap positions: indices 1 .. word.length-2 so we never swap the
+  // first or last letter.  Each position i swaps characters at i and i+1.
+  const swapPositions = Array.from({ length: word.length - 2 }, (_, i) => i + 1);
+  if (swapPositions.length === 0) return text;
+
+  const swapIdx = swapPositions[Math.floor(rng() * swapPositions.length)];
+  const swapped =
+    word.slice(0, swapIdx) +
+    word[swapIdx + 1] +
+    word[swapIdx] +
+    word.slice(swapIdx + 2);
+
+  return text.slice(0, start) + swapped + text.slice(start + word.length);
+}
