@@ -1,0 +1,8 @@
+[
+  { "id": "len_1", "instruction": "Length: Write exactly 1 sentence." },
+  { "id": "len_2", "instruction": "Length: Write exactly 2 sentences." },
+  { "id": "len_3", "instruction": "Length: Write exactly 3 sentences." },
+  { "id": "len_4", "instruction": "Length: Write exactly 4 sentences." },
+  { "id": "len_5", "instruction": "Length: Write exactly 5 sentences." },
+  { "id": "len_6", "instruction": "Length: Write exactly 6 sentences. This is the maximum — do not write more than 6." }
+]

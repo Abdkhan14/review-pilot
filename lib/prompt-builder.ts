@@ -1,10 +1,12 @@
 import type { PlaceSnapshot } from "./place-snapshot";
 import type { ReviewRecipe } from "./review-recipe";
-import type { LengthBucket, Voice, Opener } from "./review-recipe";
 import { DRAFT_COUNT } from "./catalog-items";
 import RESTAURANT_POOL from "./angles/restaurant.json";
 import SALON_POOL from "./angles/salon.json";
 import GENERIC_POOL from "./angles/generic.json";
+import LENGTHS_JSON from "./recipes/lengths.json";
+import VOICES_JSON from "./recipes/voices.json";
+import OPENERS_JSON from "./recipes/openers.json";
 
 export type PromptMessage = { role: "system" | "user"; content: string };
 export type Angle = { label: string; pick: string };
@@ -21,6 +23,12 @@ export type BuildPromptInput = {
   /** Prose-only lines from shop notes (item list already stripped out). */
   customInstructions?: string;
 };
+
+// ─── Lookup maps (built once at module load) ──────────────────────────────────
+
+const LENGTH_MAP = new Map(LENGTHS_JSON.map((l) => [l.id, l.instruction]));
+const VOICE_MAP = new Map(VOICES_JSON.map((v) => [v.id, v.instruction]));
+const OPENER_MAP = new Map(OPENERS_JSON.map((o) => [o.id, o.instruction]));
 
 const SALON_TOKENS = ["salon", "barber", "beauty", "spa", "hair"];
 const RESTAURANT_TOKENS = ["restaurant", "cafe", "bar", "pizza", "bakery", "meal"];
@@ -63,14 +71,15 @@ function systemMessage(input: BuildPromptInput, starIntent: number): string {
     "",
     "Rules:",
     "- Stay positive. Do not criticise price, value, or anything else. No complaints.",
-    "- Do not sell the place. Banned closers: \"will be back\", \"highly recommend\", \"if you're in the area\", \"must try\", \"hidden gem\", \"10/10\", \"exceeded expectations\", \"from start to finish\", \"overall experience\"",
-    "- No exclamation marks",
-    "- No filler words: \"absolutely\", \"amazing\", \"fantastic\", \"delightful\", \"impeccable\", \"seamless\", \"mouth-watering\", \"culinary\", \"nestled\", \"crafted\", \"elevated\", \"I highly recommend\", \"definitely recommend\", \"five stars\"",
-    "- No em-dashes. No \"it's worth noting\"",
-    "- No hashtags",
-    "- First person",
+    "- Do not sell the place. Banned closers: will be back, highly recommend, if you're in the area, must try, hidden gem, 10/10, exceeded expectations, from start to finish, overall experience.",
+    "- No exclamation marks.",
+    "- No filler words: absolutely, amazing, fantastic, delightful, impeccable, seamless, mouth-watering, culinary, nestled, crafted, elevated, I highly recommend, definitely recommend, five stars.",
+    "- No stacked adjective pairs. Use one adjective per thing — not tender and juicy, soft and perfect, quick and efficient, fresh and flavorful, or friendly and professional. Pick the single word that fits best.",
+    "- No em-dashes. No it's worth noting.",
+    "- No hashtags.",
+    "- First person.",
     `- Write in the tone of a ${starIntent}-star review. Do not set Google stars or fill in the Google form.`,
-    "- Do not name staff unless shop notes include their name",
+    "- Do not name staff unless shop notes include their name.",
     angleInstruction(angle, recipe.item, assignedItem),
     itemInstruction(recipe.item, assignedItem) || null,
     proseFactInstruction(recipe.proseFact),
@@ -83,35 +92,16 @@ function systemMessage(input: BuildPromptInput, starIntent: number): string {
   return lines.filter((line): line is string => line !== null).join("\n");
 }
 
-function lengthInstruction(length: LengthBucket): string {
-  const map: Record<LengthBucket, string> = {
-    one_liner: "Length: Write exactly 1 sentence.",
-    short: "Length: Write 2–3 sentences.",
-    medium: "Length: Write 4–5 sentences.",
-    ramble: "Length: Write 6–8 sentences, mixing short and longer ones.",
-  };
-  return map[length];
+function lengthInstruction(length: string): string {
+  return LENGTH_MAP.get(length) ?? "Length: Write 2-3 sentences.";
 }
 
-function voiceInstruction(voice: Voice): string {
-  const map: Record<Voice, string> = {
-    clipped: "Voice: Be direct and punchy. Short observations only.",
-    hedged: "Voice: Use hedged language: \"pretty good\", \"not bad\", \"was fine\". Stay positive — do not complain, criticise price, or flag anything negative.",
-    specific: "Voice: Be specific about one concrete detail — texture, timing, temperature, or size.",
-    tangent: "Voice: Include one aside that is not about the main subject and not a sales pitch.",
-    just_facts: "Voice: State what happened. Observations, not opinions.",
-  };
-  return map[voice];
+function voiceInstruction(voice: string): string {
+  return VOICE_MAP.get(voice) ?? "Voice: Be direct and factual.";
 }
 
-function openerInstruction(opener: Opener): string {
-  const map: Record<Opener, string> = {
-    i_first: "",
-    dish_first: "Opener: Start the first sentence with the dish or service name, not \"I\".",
-    came_here: "Opener: Start the first sentence with a phrase like \"Came here…\", \"Stopped by…\", or \"Went for…\".",
-    no_first_person: "Opener: Do not start the first sentence with \"I\".",
-  };
-  return map[opener];
+function openerInstruction(opener: string): string {
+  return OPENER_MAP.get(opener) ?? "";
 }
 
 function angleInstruction(angle: Angle, item: string, assignedItem: string | undefined): string {
@@ -126,7 +116,7 @@ function angleInstruction(angle: Angle, item: string, assignedItem: string | und
 
 function itemInstruction(item: string, assignedItem: string | undefined): string {
   if (item === "skip") {
-    return "- Do not name any catalog item. Write about atmosphere, timing, the bill, or a sensory moment instead.";
+    return "- Do not name any catalog item. Write about atmosphere, timing, or a sensory moment instead.";
   }
   if (!assignedItem) return "";
   if (item === "must") {
@@ -139,13 +129,13 @@ function proseFactInstruction(proseFact: string): string {
   if (proseFact === "allow") {
     return "- Shop notes may inform atmosphere or staff details if relevant.";
   }
-  return "- Do not name staff or reference prose-only details from shop notes (e.g. \"always mention X\"). Write from the experience.";
+  return "- Do not name staff or reference prose-only details from shop notes. Write from the experience.";
 }
 
 function textureInstruction(texture: string): string {
   if (texture === "clean") return "";
-  if (texture === "casual") return "- Grammar: contractions are fine; one missing apostrophe is natural.";
-  return "- Grammar: one comma splice or a missing final period is fine.";
+  // Surface-level slip prompt — the actual transform is applied in post-pass.
+  return "- Grammar: one small natural slip is fine (a missing apostrophe, a dropped period, or similar).";
 }
 
 function userMessage(input: BuildPromptInput): string {

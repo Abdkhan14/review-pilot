@@ -1,5 +1,9 @@
 import { describe, it, expect } from "vitest";
-import { sampleRecipeTrio } from "./review-recipe";
+import { sampleRecipeTrio, ALL_LENGTH_IDS, ALL_VOICE_IDS, ALL_OPENER_IDS, ALL_TEXTURE_IDS } from "./review-recipe";
+import LENGTHS_JSON from "./recipes/lengths.json";
+import VOICES_JSON from "./recipes/voices.json";
+import OPENERS_JSON from "./recipes/openers.json";
+import TEXTURES_JSON from "./recipes/textures.json";
 
 /** Deterministic rng seeded from an index — lets us run many trio samples. */
 function makeRng(seed: number) {
@@ -76,5 +80,94 @@ describe("sampleRecipeTrio", () => {
       ),
     );
     expect(lengths.size).toBeGreaterThan(3);
+  });
+
+  it("sampled length ids are all valid ids from lengths.json", () => {
+    const validIds = new Set(ALL_LENGTH_IDS);
+    for (let seed = 0; seed < 50; seed++) {
+      const recipes = sampleRecipeTrio(makeRng(seed));
+      for (const r of recipes) {
+        expect(validIds).toContain(r.length);
+      }
+    }
+  });
+
+  it("sampled voice ids are all valid ids from voices.json", () => {
+    const validIds = new Set(ALL_VOICE_IDS);
+    for (let seed = 0; seed < 50; seed++) {
+      const recipes = sampleRecipeTrio(makeRng(seed));
+      for (const r of recipes) {
+        expect(validIds).toContain(r.voice);
+      }
+    }
+  });
+
+  it("sampled opener ids are all valid ids from openers.json", () => {
+    const validIds = new Set(ALL_OPENER_IDS);
+    for (let seed = 0; seed < 50; seed++) {
+      const recipes = sampleRecipeTrio(makeRng(seed));
+      for (const r of recipes) {
+        expect(validIds).toContain(r.opener);
+      }
+    }
+  });
+
+  it("non-clean texture ids are all valid ids from textures.json", () => {
+    const validIds = new Set(ALL_TEXTURE_IDS);
+    for (let seed = 0; seed < 50; seed++) {
+      const recipes = sampleRecipeTrio(makeRng(seed));
+      for (const r of recipes) {
+        if (r.texture !== "clean") {
+          expect(validIds).toContain(r.texture);
+        }
+      }
+    }
+  });
+});
+
+describe("recipe catalogs", () => {
+  it("lengths catalog has exactly 6 entries (one per sentence count)", () => {
+    expect(LENGTHS_JSON.length).toBe(6);
+  });
+
+  it("every length instruction caps at 6 sentences — no 7 or 8", () => {
+    for (const { instruction } of LENGTHS_JSON) {
+      expect(instruction).not.toMatch(/\b[78]\b/);
+    }
+  });
+
+  it("voices catalog has at least 50 entries", () => {
+    expect(VOICES_JSON.length).toBeGreaterThanOrEqual(50);
+  });
+
+  it("openers catalog has at least 40 entries", () => {
+    expect(OPENERS_JSON.length).toBeGreaterThanOrEqual(40);
+  });
+
+  it("textures catalog has at least 20 slip ids", () => {
+    expect(TEXTURES_JSON.length).toBeGreaterThanOrEqual(20);
+  });
+
+  it("all catalog entries have unique ids within their file", () => {
+    for (const catalog of [LENGTHS_JSON, VOICES_JSON, OPENERS_JSON, TEXTURES_JSON]) {
+      const ids = catalog.map((e) => e.id);
+      expect(new Set(ids).size).toBe(ids.length);
+    }
+  });
+
+  it("ALL_LENGTH_IDS matches lengths.json", () => {
+    expect(ALL_LENGTH_IDS).toEqual(LENGTHS_JSON.map((l) => l.id));
+  });
+
+  it("ALL_VOICE_IDS matches voices.json", () => {
+    expect(ALL_VOICE_IDS).toEqual(VOICES_JSON.map((v) => v.id));
+  });
+
+  it("ALL_OPENER_IDS matches openers.json", () => {
+    expect(ALL_OPENER_IDS).toEqual(OPENERS_JSON.map((o) => o.id));
+  });
+
+  it("ALL_TEXTURE_IDS matches textures.json", () => {
+    expect(ALL_TEXTURE_IDS).toEqual(TEXTURES_JSON.map((t) => t.id));
   });
 });

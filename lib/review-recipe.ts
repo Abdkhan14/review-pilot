@@ -1,9 +1,21 @@
-export type LengthBucket = "one_liner" | "short" | "medium" | "ramble";
-export type Voice = "clipped" | "hedged" | "specific" | "tangent" | "just_facts";
-export type Opener = "i_first" | "dish_first" | "came_here" | "no_first_person";
+import LENGTHS_JSON from "./recipes/lengths.json";
+import VOICES_JSON from "./recipes/voices.json";
+import OPENERS_JSON from "./recipes/openers.json";
+import TEXTURES_JSON from "./recipes/textures.json";
+
+// ─── Types ────────────────────────────────────────────────────────────────────
+
+/** An id from lengths.json, e.g. "len_3". */
+export type LengthBucket = string;
+/** An id from voices.json, e.g. "v_specific". */
+export type Voice = string;
+/** An id from openers.json, e.g. "op_i_first". */
+export type Opener = string;
+
 export type ItemPolicy = "must" | "optional" | "skip";
 export type ProseFactPolicy = "allow" | "forbid";
-export type TextureKind = "clean" | "casual" | "run_on";
+/** "clean" or a slip id from textures.json, e.g. "apostrophe_contraction". */
+export type TextureKind = "clean" | string;
 
 export type ReviewRecipe = {
   length: LengthBucket;
@@ -13,6 +25,15 @@ export type ReviewRecipe = {
   proseFact: ProseFactPolicy;
   texture: TextureKind;
 };
+
+// ─── Catalogs (derived from JSON) ─────────────────────────────────────────────
+
+export const ALL_LENGTH_IDS: readonly string[] = LENGTHS_JSON.map((l) => l.id);
+export const ALL_VOICE_IDS: readonly string[] = VOICES_JSON.map((v) => v.id);
+export const ALL_OPENER_IDS: readonly string[] = OPENERS_JSON.map((o) => o.id);
+export const ALL_TEXTURE_IDS: readonly string[] = TEXTURES_JSON.map((t) => t.id);
+
+// ─── Sampler ──────────────────────────────────────────────────────────────────
 
 type Rng = () => number;
 
@@ -27,25 +48,24 @@ function shuffle<T>(arr: T[], rng: Rng): void {
   }
 }
 
-const ALL_LENGTHS: readonly LengthBucket[] = ["one_liner", "short", "medium", "ramble"];
-const ALL_VOICES: readonly Voice[] = ["clipped", "hedged", "specific", "tangent", "just_facts"];
-const ALL_OPENERS: readonly Opener[] = ["i_first", "dish_first", "came_here", "no_first_person"];
-
 /**
  * Samples three review recipes with these trio constraints:
- * - At least two distinct length buckets.
+ * - At least two distinct length ids (uniform random over 6 options).
  * - Exactly one "skip" item policy; the other two are "must" or "optional".
  * - At most one "allow" prose-fact policy.
  * - At most one non-clean texture (30% chance all three are clean).
+ *
+ * Every other pick (voice, opener, the non-clean texture id) is independent
+ * uniform random with no weighting.
  */
 export function sampleRecipeTrio(rng: Rng = Math.random): [ReviewRecipe, ReviewRecipe, ReviewRecipe] {
-  // Lengths: keep re-sampling until we get ≥ 2 distinct buckets.
-  let lengths: [LengthBucket, LengthBucket, LengthBucket];
+  // Lengths: keep re-sampling until we get ≥ 2 distinct ids.
+  let lengths: [string, string, string];
   do {
-    lengths = [pick(ALL_LENGTHS, rng), pick(ALL_LENGTHS, rng), pick(ALL_LENGTHS, rng)];
+    lengths = [pick(ALL_LENGTH_IDS, rng), pick(ALL_LENGTH_IDS, rng), pick(ALL_LENGTH_IDS, rng)];
   } while (new Set(lengths).size < 2);
 
-  // Item policy: exactly one "skip", others "must" or "optional".
+  // Item policy: exactly one "skip", others uniform "must" | "optional".
   const itemSlots: ItemPolicy[] = [
     "skip",
     pick(["must", "optional"] as const, rng),
@@ -62,14 +82,14 @@ export function sampleRecipeTrio(rng: Rng = Math.random): [ReviewRecipe, ReviewR
   if (rng() < 0.3) {
     textureSlots = ["clean", "clean", "clean"];
   } else {
-    textureSlots = [pick(["casual", "run_on"] as const, rng), "clean", "clean"];
+    textureSlots = [pick(ALL_TEXTURE_IDS, rng), "clean", "clean"];
     shuffle(textureSlots, rng);
   }
 
   return [0, 1, 2].map((i) => ({
     length: lengths[i],
-    voice: pick(ALL_VOICES, rng),
-    opener: pick(ALL_OPENERS, rng),
+    voice: pick(ALL_VOICE_IDS, rng),
+    opener: pick(ALL_OPENER_IDS, rng),
     item: itemSlots[i],
     proseFact: proseFactSlots[i],
     texture: textureSlots[i],

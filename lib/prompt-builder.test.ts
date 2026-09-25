@@ -26,9 +26,9 @@ const JOES: PlaceSnapshot = {
 const SAMPLE_ANGLE = { label: "the first bite", pick: "the main you started with, not a garnish, sauce, or extra" };
 
 const BASE_RECIPE: ReviewRecipe = {
-  length: "short",
-  voice: "specific",
-  opener: "i_first",
+  length: "len_3",
+  voice: "v_specific",
+  opener: "op_i_first",
   item: "must",
   proseFact: "forbid",
   texture: "clean",
@@ -74,14 +74,15 @@ describe("buildPrompt", () => {
     expect(sys).toContain(SAMPLE_ANGLE.label);
   });
 
-  it("encodes length=one_liner as exactly 1 sentence", () => {
-    const sys = buildPrompt({ ...BASE_INPUT, recipe: { ...BASE_RECIPE, length: "one_liner" } })[0].content;
-    expect(sys).toMatch(/1 sentence/i);
+  it("encodes length=len_1 as exactly 1 sentence", () => {
+    const sys = buildPrompt({ ...BASE_INPUT, recipe: { ...BASE_RECIPE, length: "len_1" } })[0].content;
+    expect(sys).toMatch(/exactly 1 sentence/i);
   });
 
-  it("encodes length=ramble as 6–8 sentences", () => {
-    const sys = buildPrompt({ ...BASE_INPUT, recipe: { ...BASE_RECIPE, length: "ramble" } })[0].content;
-    expect(sys).toMatch(/6.8 sentences/i);
+  it("encodes length=len_6 as exactly 6 sentences (the max)", () => {
+    const sys = buildPrompt({ ...BASE_INPUT, recipe: { ...BASE_RECIPE, length: "len_6" } })[0].content;
+    expect(sys).toMatch(/6 sentences/i);
+    expect(sys).toMatch(/maximum/i);
   });
 
   it("encodes item=skip to forbid any catalog item", () => {
@@ -111,14 +112,17 @@ describe("buildPrompt", () => {
     expect(sys).toMatch(/shop notes may inform/i);
   });
 
-  it("encodes texture=casual in the grammar rule", () => {
-    const sys = buildPrompt({ ...BASE_INPUT, recipe: { ...BASE_RECIPE, texture: "casual" } })[0].content;
-    expect(sys).toMatch(/apostrophe/i);
+  it("includes a grammar-slip note in the system prompt for any non-clean texture", () => {
+    const sys = buildPrompt({
+      ...BASE_INPUT,
+      recipe: { ...BASE_RECIPE, texture: "apostrophe_contraction" },
+    })[0].content;
+    expect(sys).toMatch(/natural slip/i);
   });
 
-  it("encodes texture=run_on in the grammar rule", () => {
-    const sys = buildPrompt({ ...BASE_INPUT, recipe: { ...BASE_RECIPE, texture: "run_on" } })[0].content;
-    expect(sys).toMatch(/comma splice/i);
+  it("omits the grammar-slip note when texture is clean", () => {
+    const sys = buildPrompt({ ...BASE_INPUT, recipe: { ...BASE_RECIPE, texture: "clean" } })[0].content;
+    expect(sys).not.toMatch(/natural slip/i);
   });
 
   it("bans marketing closers from the system prompt", () => {
@@ -126,6 +130,38 @@ describe("buildPrompt", () => {
     expect(sys).toContain("highly recommend");
     expect(sys).toContain("hidden gem");
     expect(sys).toContain("must try");
+  });
+
+  it("forbids stacked adjective pairs in the system prompt", () => {
+    const sys = buildPrompt(BASE_INPUT)[0].content;
+    expect(sys).toMatch(/stacked adjective pairs/i);
+    expect(sys).toContain("tender and juicy");
+    expect(sys).toContain("soft and perfect");
+    expect(sys).toContain("quick and efficient");
+  });
+
+  it("skip-item prompt does not mention the bill", () => {
+    const sys = buildPrompt({
+      ...BASE_INPUT,
+      recipe: { ...BASE_RECIPE, item: "skip" },
+    })[0].content;
+    expect(sys).not.toMatch(/\bthe bill\b/i);
+  });
+
+  it("looks up the length instruction from lengths.json for len_4", () => {
+    const sys = buildPrompt({
+      ...BASE_INPUT,
+      recipe: { ...BASE_RECIPE, length: "len_4" },
+    })[0].content;
+    expect(sys).toMatch(/exactly 4 sentences/i);
+  });
+
+  it("falls back gracefully for an unknown length id", () => {
+    const sys = buildPrompt({
+      ...BASE_INPUT,
+      recipe: { ...BASE_RECIPE, length: "unknown_bucket" },
+    })[0].content;
+    expect(sys).toMatch(/2.3 sentences/i);
   });
 
   it("mentions a 5-star tone when starIntent is omitted", () => {
