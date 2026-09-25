@@ -57,7 +57,7 @@ function shuffle<T>(arr: T[], rng: Rng): void {
  * - Exactly one "skip" item policy; the other two are "must" or "optional".
  * - At most one "allow" prose-fact policy.
  * - At most one non-clean texture (30% chance all three are clean).
- * - At most one "swap" typo (80% chance all three are clean).
+ * - At most one "swap" typo (70% chance all three are clean).
  *   The swap always lands on a texture-clean draft so grammar slip and typo
  *   never stack on the same review.
  *
@@ -91,11 +91,11 @@ export function sampleRecipeTrio(rng: Rng = Math.random): [ReviewRecipe, ReviewR
     shuffle(textureSlots, rng);
   }
 
-  // Typo: 0 or 1 swap. 80% chance all three stay clean.
+  // Typo: 0 or 1 swap. 70% chance all three stay clean.
   // When a swap is added it must land on a texture-clean draft so a grammar
   // slip and a typo never appear in the same review.
   const typoSlots: TypoKind[] = ["clean", "clean", "clean"];
-  if (rng() >= 0.8) {
+  if (rng() >= 0.7) {
     const cleanTextureIndices = textureSlots
       .map((t, i) => (t === "clean" ? i : -1))
       .filter((i) => i !== -1);
