@@ -1,6 +1,6 @@
 import "server-only";
 import { NextRequest, NextResponse } from "next/server";
-import { findById, update } from "@/lib/business-repo";
+import { findById, update, remove } from "@/lib/business-repo";
 import { db } from "@/lib/db";
 import { parseUpdateBusinessInput } from "@/lib/update-business-input";
 import { requireAdmin } from "@/lib/require-admin";
@@ -25,4 +25,20 @@ export async function PATCH(
 
   const updated = await update(db, id, parsed.input);
   return NextResponse.json({ slug: updated.slug, tier: updated.tier });
+}
+
+export async function DELETE(
+  req: NextRequest,
+  ctx: { params: Promise<{ id: string }> }
+) {
+  const denied = await requireAdmin(req);
+  if (denied) return denied;
+
+  const { id } = await ctx.params;
+
+  const existing = await findById(db, id);
+  if (!existing) return new NextResponse(null, { status: 404 });
+
+  await remove(db, id);
+  return new NextResponse(null, { status: 204 });
 }

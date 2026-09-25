@@ -18,6 +18,7 @@ vi.mock("@/hooks/useUpdateBusiness", () => ({
   }),
 }));
 
+
 const defaultProps = {
   id: "cuid-abc123",
   name: "Joe's Pizza",
@@ -106,4 +107,5 @@ describe("EditBusinessForm", () => {
     const textarea = screen.getByLabelText(/shop notes/i) as HTMLTextAreaElement;
     expect(textarea.value).toBe("some notes");
   });
+
 });
