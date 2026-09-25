@@ -1,6 +1,11 @@
 import { describe, it, expect } from "vitest";
-import { buildPrompt } from "./prompt-builder";
+import { buildPrompt, anglesForPrimaryType } from "./prompt-builder";
+import type { BuildPromptInput } from "./prompt-builder";
 import type { PlaceSnapshot } from "./place-snapshot";
+import type { ReviewRecipe } from "./review-recipe";
+import RESTAURANT_POOL from "./angles/restaurant.json";
+import SALON_POOL from "./angles/salon.json";
+import GENERIC_POOL from "./angles/generic.json";
 
 const JOES: PlaceSnapshot = {
   placeId: "ChIJhUnH0T7U1IkR6N_N0K0P67M",
@@ -13,27 +18,38 @@ const JOES: PlaceSnapshot = {
   writeReviewUrl:
     "https://search.google.com/local/writereview?placeid=ChIJhUnH0T7U1IkR6N_N0K0P67M",
   reviews: [
-    {
-      rating: 5,
-      text: "Best pepperoni in the neighborhood.",
-      relativeTime: "2 months ago",
-    },
+    { rating: 5, text: "Best pepperoni in the neighborhood.", relativeTime: "2 months ago" },
   ],
   fetchedAt: "2026-09-14T00:00:00.000Z",
 };
 
-const EXAMPLES_HEADING =
-  "Existing Google reviews (examples only — do not copy):";
+const SAMPLE_ANGLE = { label: "the first bite", pick: "the main you started with, not a garnish, sauce, or extra" };
 
-function promptText(
-  messages: { role: string; content: string }[],
-): string {
+const BASE_RECIPE: ReviewRecipe = {
+  length: "len_3",
+  voice: "v_specific",
+  opener: "op_i_first",
+  item: "must",
+  proseFact: "forbid",
+  texture: "clean",
+};
+
+const BASE_INPUT: BuildPromptInput = {
+  id: "a",
+  snapshot: JOES,
+  angle: SAMPLE_ANGLE,
+  recipe: BASE_RECIPE,
+};
+
+const EXAMPLES_HEADING = "Existing Google reviews (examples only — do not copy):";
+
+function promptText(messages: { role: string; content: string }[]): string {
   return messages.map((m) => m.content).join("\n");
 }
 
 describe("buildPrompt", () => {
   it("returns a system message then a user message", () => {
-    const messages = buildPrompt({ snapshot: JOES });
+    const messages = buildPrompt(BASE_INPUT);
     expect(messages).toHaveLength(2);
     expect(messages[0].role).toBe("system");
     expect(messages[1].role).toBe("user");
@@ -41,211 +57,228 @@ describe("buildPrompt", () => {
     expect(messages[1].content.length).toBeGreaterThan(0);
   });
 
-  it("puts the fixture snapshot name and primaryType in the prompt", () => {
-    const text = promptText(buildPrompt({ snapshot: JOES }));
+  it("puts snapshot name and primaryType in the user message", () => {
+    const text = promptText(buildPrompt(BASE_INPUT));
     expect(text).toContain("Joe's Pizza");
     expect(text).toContain("pizza_restaurant");
   });
 
-  it("includes custom instructions", () => {
-    const text = promptText(
-      buildPrompt({
-        snapshot: JOES,
-        customInstructions: "mention the garlic knots",
-      }),
-    );
+  it("puts the angle label in the system message", () => {
+    const sys = buildPrompt(BASE_INPUT)[0].content;
+    expect(sys).toContain(SAMPLE_ANGLE.label);
+  });
+
+  it("encodes the JSON output shape with the correct id and angle", () => {
+    const sys = buildPrompt({ ...BASE_INPUT, id: "b" })[0].content;
+    expect(sys).toContain('"id": "b"');
+    expect(sys).toContain(SAMPLE_ANGLE.label);
+  });
+
+  it("encodes length=len_1 as exactly 1 sentence", () => {
+    const sys = buildPrompt({ ...BASE_INPUT, recipe: { ...BASE_RECIPE, length: "len_1" } })[0].content;
+    expect(sys).toMatch(/exactly 1 sentence/i);
+  });
+
+  it("encodes length=len_6 as exactly 6 sentences (the max)", () => {
+    const sys = buildPrompt({ ...BASE_INPUT, recipe: { ...BASE_RECIPE, length: "len_6" } })[0].content;
+    expect(sys).toMatch(/6 sentences/i);
+    expect(sys).toMatch(/maximum/i);
+  });
+
+  it("encodes item=skip to forbid any catalog item", () => {
+    const sys = buildPrompt({ ...BASE_INPUT, recipe: { ...BASE_RECIPE, item: "skip" } })[0].content;
+    expect(sys).toMatch(/do not name any catalog item/i);
+  });
+
+  it("encodes item=must with the assigned item name", () => {
+    const sys = buildPrompt({ ...BASE_INPUT, recipe: { ...BASE_RECIPE, item: "must" }, assignedItem: "Shawarma" })[0].content;
+    expect(sys).toContain("Shawarma");
+    expect(sys).toMatch(/name shawarma once/i);
+  });
+
+  it("encodes item=optional with the assigned item name", () => {
+    const sys = buildPrompt({ ...BASE_INPUT, recipe: { ...BASE_RECIPE, item: "optional" }, assignedItem: "Hummus" })[0].content;
+    expect(sys).toContain("Hummus");
+    expect(sys).toMatch(/may appear if it fits/i);
+  });
+
+  it("encodes proseFact=forbid to block staff and prose details", () => {
+    const sys = buildPrompt({ ...BASE_INPUT, recipe: { ...BASE_RECIPE, proseFact: "forbid" } })[0].content;
+    expect(sys).toMatch(/do not name staff/i);
+  });
+
+  it("encodes proseFact=allow to permit shop note atmosphere details", () => {
+    const sys = buildPrompt({ ...BASE_INPUT, recipe: { ...BASE_RECIPE, proseFact: "allow" } })[0].content;
+    expect(sys).toMatch(/shop notes may inform/i);
+  });
+
+  it("includes a grammar-slip note in the system prompt for any non-clean texture", () => {
+    const sys = buildPrompt({
+      ...BASE_INPUT,
+      recipe: { ...BASE_RECIPE, texture: "apostrophe_contraction" },
+    })[0].content;
+    expect(sys).toMatch(/natural slip/i);
+  });
+
+  it("omits the grammar-slip note when texture is clean", () => {
+    const sys = buildPrompt({ ...BASE_INPUT, recipe: { ...BASE_RECIPE, texture: "clean" } })[0].content;
+    expect(sys).not.toMatch(/natural slip/i);
+  });
+
+  it("bans marketing closers from the system prompt", () => {
+    const sys = buildPrompt(BASE_INPUT)[0].content;
+    expect(sys).toContain("highly recommend");
+    expect(sys).toContain("hidden gem");
+    expect(sys).toContain("must try");
+  });
+
+  it("forbids stacked adjective pairs in the system prompt", () => {
+    const sys = buildPrompt(BASE_INPUT)[0].content;
+    expect(sys).toMatch(/stacked adjective pairs/i);
+    expect(sys).toContain("tender and juicy");
+    expect(sys).toContain("soft and perfect");
+    expect(sys).toContain("quick and efficient");
+  });
+
+  it("skip-item prompt does not mention the bill", () => {
+    const sys = buildPrompt({
+      ...BASE_INPUT,
+      recipe: { ...BASE_RECIPE, item: "skip" },
+    })[0].content;
+    expect(sys).not.toMatch(/\bthe bill\b/i);
+  });
+
+  it("looks up the length instruction from lengths.json for len_4", () => {
+    const sys = buildPrompt({
+      ...BASE_INPUT,
+      recipe: { ...BASE_RECIPE, length: "len_4" },
+    })[0].content;
+    expect(sys).toMatch(/exactly 4 sentences/i);
+  });
+
+  it("falls back gracefully for an unknown length id", () => {
+    const sys = buildPrompt({
+      ...BASE_INPUT,
+      recipe: { ...BASE_RECIPE, length: "unknown_bucket" },
+    })[0].content;
+    expect(sys).toMatch(/2.3 sentences/i);
+  });
+
+  it("mentions a 5-star tone when starIntent is omitted", () => {
+    const text = promptText(buildPrompt(BASE_INPUT));
+    expect(text).toMatch(/5[- ]star/i);
+  });
+
+  it("includes custom instructions in the user message", () => {
+    const text = promptText(buildPrompt({ ...BASE_INPUT, customInstructions: "mention the garlic knots" }));
     expect(text).toContain("mention the garlic knots");
   });
 
-  it("includes assigned subjects in the user message when assignedItems are provided", () => {
-    const user = buildPrompt({
-      snapshot: JOES,
-      customInstructions: "# Mains\n- Shawarma\n- Mixed Grill\n\n# Sides\n- Hummus",
-      assignedItems: [
-        { id: "a", name: "Shawarma" },
-        { id: "b", name: "Hummus" },
-        { id: "c", name: "Mixed Grill" },
-      ],
-    })[1].content;
-    expect(user).toContain("Assigned subjects");
-    expect(user).toContain("a: Shawarma");
-    expect(user).toContain("b: Hummus");
-    expect(user).toContain("c: Mixed Grill");
-  });
-
-  it("uses assignment rules in the system message when assignedItems are provided", () => {
-    const system = buildPrompt({
-      snapshot: JOES,
-      assignedItems: [
-        { id: "a", name: "Shawarma" },
-        { id: "b", name: "Hummus" },
-        { id: "c", name: "Mixed Grill" },
-      ],
-    })[0].content;
-    expect(system).toMatch(/assigned subject/i);
-    expect(system).not.toMatch(/consecutive generations must not/i);
-    expect(system).not.toMatch(/at random from the whole/i);
-  });
-
-  it("uses default rules in the system message when no assignedItems are provided", () => {
-    const system = buildPrompt({ snapshot: JOES })[0].content;
-    expect(system).toMatch(/equal weight/i);
-    expect(system).not.toMatch(/assigned subject/i);
-  });
-
-  it("says shop notes override the rest of the prompt", () => {
-    const text = promptText(
-      buildPrompt({
-        snapshot: JOES,
-        customInstructions: "mention the garlic knots",
-      }),
-    );
-    expect(text).toMatch(/shop notes override/i);
-  });
-
-  it("passes shop notes through unchanged", () => {
-    const notes =
-      "Chicken Shawarma Platter - $21.00 | Mixed Shawarma Platter - $22.49 | Baklava Box - $13.99";
-    const user = buildPrompt({
-      snapshot: JOES,
-      customInstructions: notes,
-    })[1].content;
-    expect(user).toContain(notes);
-  });
-
-  it("tells the model not to overweight repeated or distinctive specialties", () => {
-    const text = promptText(
-      buildPrompt({
-        snapshot: JOES,
-        customInstructions: "fine line, cover-ups, floral",
-      }),
-    );
-    expect(text).toMatch(/equal weight/i);
-    expect(text).toMatch(/most distinctive or most-mentioned specialty/i);
-  });
-
   it("omits example Google reviews when shop notes are present", () => {
-    const text = promptText(
-      buildPrompt({
-        snapshot: JOES,
-        customInstructions: "mention the garlic knots",
-      }),
-    );
+    const text = promptText(buildPrompt({ ...BASE_INPUT, customInstructions: "great knots" }));
     expect(text).not.toContain(EXAMPLES_HEADING);
     expect(text).not.toContain("Best pepperoni in the neighborhood.");
   });
 
   it("includes example Google reviews when no shop notes are present", () => {
-    const text = promptText(buildPrompt({ snapshot: JOES }));
+    const text = promptText(buildPrompt(BASE_INPUT));
     expect(text).toContain(EXAMPLES_HEADING);
     expect(text).toContain("Best pepperoni in the neighborhood.");
   });
 
-  it("still produces a prompt when reviews are missing", () => {
+  it("still produces a prompt when snapshot reviews are missing", () => {
     const { reviews: _reviews, ...noReviews } = JOES;
-    const messages = buildPrompt({ snapshot: noReviews });
+    const messages = buildPrompt({ ...BASE_INPUT, snapshot: noReviews });
     expect(messages).toHaveLength(2);
-    const text = promptText(messages);
-    expect(text).toContain("Joe's Pizza");
-    expect(text).not.toContain(EXAMPLES_HEADING);
+    expect(promptText(messages)).toContain("Joe's Pizza");
   });
 
-  it("still produces a prompt when reviews are an empty array", () => {
-    const messages = buildPrompt({
-      snapshot: { ...JOES, reviews: [] },
-    });
+  it("still produces a prompt when snapshot reviews are an empty array", () => {
+    const messages = buildPrompt({ ...BASE_INPUT, snapshot: { ...JOES, reviews: [] } });
     expect(messages).toHaveLength(2);
-    const text = promptText(messages);
-    expect(text).toContain("Joe's Pizza");
-    expect(text).not.toContain(EXAMPLES_HEADING);
-  });
-
-  it("mentions a 5-star tone when starIntent is omitted", () => {
-    const text = promptText(buildPrompt({ snapshot: JOES }));
-    expect(text).toMatch(/5[- ]star/i);
-  });
-
-  it("picks exactly 3 angles for a restaurant-ish type, all from the restaurant pool", () => {
-    const RESTAURANT_POOL = [
-      "what you actually ate",
-      "how the place felt on a normal visit",
-      "whether it hit the craving",
-      "the thing you almost didn't order but did",
-      "how full you left feeling",
-      "the first bite",
-      "the sides or extras",
-      "the drink or dessert",
-      "the smell when you walked in",
-      "how the bill felt at the end",
-      "how loud or quiet it was",
-      "what the regulars seem to know to order",
-      "whether it held up as takeout",
-      "how fast or slow the food came",
-      "the detail that made you want to come back",
-      "something you noticed that you didn't expect",
-      "what you'd tell someone who'd never been",
-      "how it felt to sit there for a while",
-      "the thing that was better than it sounds on the menu",
-      "whether you'd go back on a weeknight",
-      "how the staff read the room",
-      "something small that made the meal",
-      "what you were in the mood for and whether it delivered",
-      "how it felt walking out",
-      "the thing you're still thinking about",
-    ];
-    const text = promptText(buildPrompt({ snapshot: JOES }));
-    const matched = RESTAURANT_POOL.filter((a) => text.includes(a));
-    expect(matched).toHaveLength(3);
-    expect(text).toMatch(/what to pick from shop notes/i);
-    for (const label of matched) {
-      expect(text).toContain(`${label}:`);
-    }
-  });
-
-  it("picks exactly 3 angles when primaryType is missing, all from the generic pool", () => {
-    const GENERIC_POOL = [
-      "how the thing actually turned out",
-      "the detail that surprised you",
-      "whether they listened to what you actually wanted",
-      "how the place felt to be in",
-      "how fast or slow the whole thing went",
-      "what you'd tell someone before they went",
-      "the moment you knew it was the right call",
-      "something small they did that you didn't expect",
-      "whether it matched what you saw online",
-      "how you felt walking out",
-      "the thing that would make you go back",
-      "whether it solved what you came in for",
-      "how easy or hard it was to get going",
-      "something they did that went beyond what you asked",
-      "the thing that's still on your mind",
-      "whether the price felt right after",
-      "how quick the turnaround was",
-      "the first impression and whether it held",
-      "what you'd do differently knowing what you know now",
-      "how they handled a question or hiccup",
-      "the one thing you'd highlight to a friend",
-      "whether the vibe matched the work",
-      "how it felt to hand it off or leave",
-      "something you noticed that others might miss",
-      "whether you'd clear your schedule for it again",
-    ];
-    const { primaryType: _type, ...noType } = JOES;
-    const text = promptText(buildPrompt({ snapshot: noType }));
-    const matched = GENERIC_POOL.filter((a) => text.includes(a));
-    expect(matched).toHaveLength(3);
-  });
-
-  it("places existing review text after the examples heading", () => {
-    const text = promptText(buildPrompt({ snapshot: JOES }));
-    const quote = "Best pepperoni in the neighborhood.";
-    expect(text).toContain(EXAMPLES_HEADING);
-    expect(text.indexOf(EXAMPLES_HEADING)).toBeLessThan(text.indexOf(quote));
+    expect(promptText(messages)).not.toContain(EXAMPLES_HEADING);
   });
 
   it("does not put placeId or writeReviewUrl in the prompt", () => {
-    const text = promptText(buildPrompt({ snapshot: JOES }));
+    const text = promptText(buildPrompt(BASE_INPUT));
     expect(text).not.toContain(JOES.placeId);
     expect(text).not.toContain(JOES.writeReviewUrl);
+  });
+});
+
+describe("anglesForPrimaryType", () => {
+  it("returns exactly 3 angles for a restaurant type, all from the restaurant pool", () => {
+    const angles = anglesForPrimaryType("pizza_restaurant");
+    expect(angles).toHaveLength(3);
+    const labels = (RESTAURANT_POOL as { label: string }[]).map((a) => a.label);
+    for (const angle of angles) {
+      expect(labels).toContain(angle.label);
+    }
+  });
+
+  it("returns exactly 3 angles for a salon type, all from the salon pool", () => {
+    const angles = anglesForPrimaryType("hair_salon");
+    expect(angles).toHaveLength(3);
+    const labels = (SALON_POOL as { label: string }[]).map((a) => a.label);
+    for (const angle of angles) {
+      expect(labels).toContain(angle.label);
+    }
+  });
+
+  it("returns exactly 3 angles from the generic pool when primaryType is missing", () => {
+    const angles = anglesForPrimaryType(undefined);
+    expect(angles).toHaveLength(3);
+    const labels = (GENERIC_POOL as { label: string }[]).map((a) => a.label);
+    for (const angle of angles) {
+      expect(labels).toContain(angle.label);
+    }
+  });
+
+  it("uses the spa pool for a spa type", () => {
+    const angles = anglesForPrimaryType("spa");
+    const labels = (SALON_POOL as { label: string }[]).map((a) => a.label);
+    for (const angle of angles) {
+      expect(labels).toContain(angle.label);
+    }
+  });
+});
+
+describe("angle pools", () => {
+  const BANNED_SUBSTRINGS = ["tell a friend", "come back", "book next time"];
+
+  it("restaurant pool has at least 80 angles", () => {
+    expect(RESTAURANT_POOL.length).toBeGreaterThanOrEqual(80);
+  });
+
+  it("salon pool has at least 80 angles", () => {
+    expect(SALON_POOL.length).toBeGreaterThanOrEqual(80);
+  });
+
+  it("generic pool has at least 80 angles", () => {
+    expect(GENERIC_POOL.length).toBeGreaterThanOrEqual(80);
+  });
+
+  it("restaurant pool labels contain no banned marketing substrings", () => {
+    for (const { label } of RESTAURANT_POOL as { label: string }[]) {
+      for (const banned of BANNED_SUBSTRINGS) {
+        expect(label).not.toContain(banned);
+      }
+    }
+  });
+
+  it("salon pool labels contain no banned marketing substrings", () => {
+    for (const { label } of SALON_POOL as { label: string }[]) {
+      for (const banned of BANNED_SUBSTRINGS) {
+        expect(label).not.toContain(banned);
+      }
+    }
+  });
+
+  it("generic pool labels contain no banned marketing substrings", () => {
+    for (const { label } of GENERIC_POOL as { label: string }[]) {
+      for (const banned of BANNED_SUBSTRINGS) {
+        expect(label).not.toContain(banned);
+      }
+    }
   });
 });
