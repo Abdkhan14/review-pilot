@@ -53,7 +53,7 @@ function shuffle<T>(arr: T[], rng: Rng): void {
 
 /**
  * Samples three review recipes with these trio constraints:
- * - At least two distinct length ids (uniform random over 6 options).
+ * - Three distinct length ids (shuffle of 12 options, take first three).
  * - Exactly one "skip" item policy; the other two are "must" or "optional".
  * - At most one "allow" prose-fact policy.
  * - At most one non-clean texture (30% chance all three are clean).
@@ -65,11 +65,10 @@ function shuffle<T>(arr: T[], rng: Rng): void {
  * uniform random with no weighting.
  */
 export function sampleRecipeTrio(rng: Rng = Math.random): [ReviewRecipe, ReviewRecipe, ReviewRecipe] {
-  // Lengths: keep re-sampling until we get ≥ 2 distinct ids.
-  let lengths: [string, string, string];
-  do {
-    lengths = [pick(ALL_LENGTH_IDS, rng), pick(ALL_LENGTH_IDS, rng), pick(ALL_LENGTH_IDS, rng)];
-  } while (new Set(lengths).size < 2);
+  // Lengths: three distinct ids from a shuffle of the catalog.
+  const shuffledLengths = [...ALL_LENGTH_IDS];
+  shuffle(shuffledLengths, rng);
+  const lengths = shuffledLengths.slice(0, 3) as [string, string, string];
 
   // Item policy: exactly one "skip", others uniform "must" | "optional".
   const itemSlots: ItemPolicy[] = [

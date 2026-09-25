@@ -4,5 +4,11 @@
   { "id": "len_3", "instruction": "Length: Write exactly 3 sentences." },
   { "id": "len_4", "instruction": "Length: Write exactly 4 sentences." },
   { "id": "len_5", "instruction": "Length: Write exactly 5 sentences." },
-  { "id": "len_6", "instruction": "Length: Write exactly 6 sentences. This is the maximum — do not write more than 6." }
+  { "id": "len_6", "instruction": "Length: Write exactly 6 sentences. This is the maximum — do not write more than 6." },
+  { "id": "len_1b", "instruction": "Length: One sentence only." },
+  { "id": "len_2b", "instruction": "Length: Two sentences, no more." },
+  { "id": "len_3b", "instruction": "Length: Three sentences." },
+  { "id": "len_4b", "instruction": "Length: Four sentences." },
+  { "id": "len_5b", "instruction": "Length: Five sentences." },
+  { "id": "len_6b", "instruction": "Length: Six sentences. Do not go longer." }
 ]
