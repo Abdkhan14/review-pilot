@@ -86,9 +86,10 @@ describe("buildPrompt", () => {
     expect(sys).toMatch(/maximum/i);
   });
 
-  it("encodes item=skip to forbid any catalog item", () => {
-    const sys = buildPrompt({ ...BASE_INPUT, recipe: { ...BASE_RECIPE, item: "skip" } })[0].content;
-    expect(sys).toMatch(/do not name any catalog item/i);
+  it("omits an item line when no assignedItem is provided", () => {
+    const sys = buildPrompt({ ...BASE_INPUT, recipe: { ...BASE_RECIPE, item: "optional" } })[0].content;
+    expect(sys).not.toMatch(/may appear if it fits/i);
+    expect(sys).not.toMatch(/name .* once/i);
   });
 
   it("encodes item=must with the assigned item name", () => {
@@ -141,11 +142,8 @@ describe("buildPrompt", () => {
     expect(sys).toContain("quick and efficient");
   });
 
-  it("skip-item prompt does not mention the bill", () => {
-    const sys = buildPrompt({
-      ...BASE_INPUT,
-      recipe: { ...BASE_RECIPE, item: "skip" },
-    })[0].content;
+  it("prompt does not mention the bill", () => {
+    const sys = buildPrompt({ ...BASE_INPUT })[0].content;
     expect(sys).not.toMatch(/\bthe bill\b/i);
   });
 
