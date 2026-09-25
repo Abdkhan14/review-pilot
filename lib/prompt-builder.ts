@@ -62,6 +62,7 @@ function systemMessage(input: BuildPromptInput, starIntent: number): string {
     openerInstruction(recipe.opener) || null,
     "",
     "Rules:",
+    "- Stay positive. Do not criticise price, value, or anything else. No complaints.",
     "- Do not sell the place. Banned closers: \"will be back\", \"highly recommend\", \"if you're in the area\", \"must try\", \"hidden gem\", \"10/10\", \"exceeded expectations\", \"from start to finish\", \"overall experience\"",
     "- No exclamation marks",
     "- No filler words: \"absolutely\", \"amazing\", \"fantastic\", \"delightful\", \"impeccable\", \"seamless\", \"mouth-watering\", \"culinary\", \"nestled\", \"crafted\", \"elevated\", \"I highly recommend\", \"definitely recommend\", \"five stars\"",
@@ -95,7 +96,7 @@ function lengthInstruction(length: LengthBucket): string {
 function voiceInstruction(voice: Voice): string {
   const map: Record<Voice, string> = {
     clipped: "Voice: Be direct and punchy. Short observations only.",
-    hedged: "Voice: Use hedged language: \"pretty good\", \"not bad\", \"was fine\". One mild nit is fine — the review stays positive overall.",
+    hedged: "Voice: Use hedged language: \"pretty good\", \"not bad\", \"was fine\". Stay positive — do not complain, criticise price, or flag anything negative.",
     specific: "Voice: Be specific about one concrete detail — texture, timing, temperature, or size.",
     tangent: "Voice: Include one aside that is not about the main subject and not a sales pitch.",
     just_facts: "Voice: State what happened. Observations, not opinions.",
