@@ -33,11 +33,11 @@ describe("sampleRecipeTrio", () => {
     }
   });
 
-  it("trio always contains at least two distinct length buckets", () => {
+  it("trio always contains three distinct length ids", () => {
     for (let seed = 0; seed < 200; seed++) {
       const recipes = sampleRecipeTrio(makeRng(seed));
       const lengths = new Set(recipes.map((r) => r.length));
-      expect(lengths.size).toBeGreaterThanOrEqual(2);
+      expect(lengths.size).toBe(3);
     }
   });
 
@@ -165,8 +165,8 @@ describe("sampleRecipeTrio", () => {
 });
 
 describe("recipe catalogs", () => {
-  it("lengths catalog has exactly 6 entries (one per sentence count)", () => {
-    expect(LENGTHS_JSON.length).toBe(6);
+  it("lengths catalog has at least 12 entries", () => {
+    expect(LENGTHS_JSON.length).toBeGreaterThanOrEqual(12);
   });
 
   it("every length instruction caps at 6 sentences — no 7 or 8", () => {
