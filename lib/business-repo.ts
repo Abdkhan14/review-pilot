@@ -45,3 +45,7 @@ export async function update(
 export async function list(db: PrismaClient) {
   return db.business.findMany({ orderBy: { createdAt: "desc" } });
 }
+
+export async function remove(db: PrismaClient, id: string) {
+  return db.business.delete({ where: { id } });
+}
