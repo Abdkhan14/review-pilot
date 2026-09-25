@@ -105,10 +105,7 @@ function openerInstruction(opener: string): string {
 }
 
 function angleInstruction(angle: Angle, item: string, assignedItem: string | undefined): string {
-  if (item === "skip") {
-    return `- Angle: "${angle.label}". Focus on atmosphere, timing, space, or a sensory moment — do not name any catalog item.`;
-  }
-  if (assignedItem) {
+  if (assignedItem && item !== "skip") {
     return `- Angle: "${angle.label}". The assigned item for this draft is ${assignedItem}.`;
   }
   return `- Angle: "${angle.label}". If shop notes list items, pick: ${angle.pick}.`;
