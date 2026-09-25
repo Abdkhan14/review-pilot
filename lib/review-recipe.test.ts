@@ -41,18 +41,10 @@ describe("sampleRecipeTrio", () => {
     }
   });
 
-  it("trio always contains exactly one skip item policy", () => {
+  it("all three drafts have item policy must or optional (no skip)", () => {
     for (let seed = 0; seed < 200; seed++) {
       const recipes = sampleRecipeTrio(makeRng(seed));
-      const skipCount = recipes.filter((r) => r.item === "skip").length;
-      expect(skipCount).toBe(1);
-    }
-  });
-
-  it("non-skip slots have item policy must or optional only", () => {
-    for (let seed = 0; seed < 200; seed++) {
-      const recipes = sampleRecipeTrio(makeRng(seed));
-      for (const r of recipes.filter((r) => r.item !== "skip")) {
+      for (const r of recipes) {
         expect(["must", "optional"]).toContain(r.item);
       }
     }

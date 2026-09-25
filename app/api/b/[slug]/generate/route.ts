@@ -69,8 +69,7 @@ export async function POST(
 
   const messagesList = DRAFT_IDS.map((id, i) => {
     const recipe = recipes[i];
-    const assignedItem =
-      itemNames[i] && recipe.item !== "skip" ? itemNames[i] : undefined;
+    const assignedItem = itemNames[i] || undefined;
     return buildPrompt({
       id: id as DraftId,
       snapshot,

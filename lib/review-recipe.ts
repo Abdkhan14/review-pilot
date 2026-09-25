@@ -12,7 +12,7 @@ export type Voice = string;
 /** An id from openers.json, e.g. "op_i_first". */
 export type Opener = string;
 
-export type ItemPolicy = "must" | "optional" | "skip";
+export type ItemPolicy = "must" | "optional";
 export type ProseFactPolicy = "allow" | "forbid";
 /** "clean" or a slip id from textures.json, e.g. "apostrophe_contraction". */
 export type TextureKind = "clean" | string;
@@ -54,7 +54,7 @@ function shuffle<T>(arr: T[], rng: Rng): void {
 /**
  * Samples three review recipes with these trio constraints:
  * - Three distinct length ids (shuffle of 12 options, take first three).
- * - Exactly one "skip" item policy; the other two are "must" or "optional".
+ * - Item policy is independent "must" | "optional" per draft (no skip).
  * - At most one "allow" prose-fact policy.
  * - At most one non-clean texture (30% chance all three are clean).
  * - At most one "swap" typo (70% chance all three are clean).
@@ -70,13 +70,12 @@ export function sampleRecipeTrio(rng: Rng = Math.random): [ReviewRecipe, ReviewR
   shuffle(shuffledLengths, rng);
   const lengths = shuffledLengths.slice(0, 3) as [string, string, string];
 
-  // Item policy: exactly one "skip", others uniform "must" | "optional".
+  // Item policy: independent uniform "must" | "optional" per draft.
   const itemSlots: ItemPolicy[] = [
-    "skip",
+    pick(["must", "optional"] as const, rng),
     pick(["must", "optional"] as const, rng),
     pick(["must", "optional"] as const, rng),
   ];
-  shuffle(itemSlots, rng);
 
   // Prose fact: at most one "allow".
   const proseFactSlots: ProseFactPolicy[] = ["allow", "forbid", "forbid"];

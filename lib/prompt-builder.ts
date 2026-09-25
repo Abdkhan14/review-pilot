@@ -80,7 +80,7 @@ function systemMessage(input: BuildPromptInput, starIntent: number): string {
     "- First person.",
     `- Write in the tone of a ${starIntent}-star review. Do not set Google stars or fill in the Google form.`,
     "- Do not name staff unless shop notes include their name.",
-    angleInstruction(angle, recipe.item, assignedItem),
+    angleInstruction(angle, assignedItem),
     itemInstruction(recipe.item, assignedItem) || null,
     proseFactInstruction(recipe.proseFact),
     textureInstruction(recipe.texture) || null,
@@ -104,17 +104,14 @@ function openerInstruction(opener: string): string {
   return OPENER_MAP.get(opener) ?? "";
 }
 
-function angleInstruction(angle: Angle, item: string, assignedItem: string | undefined): string {
-  if (assignedItem && item !== "skip") {
+function angleInstruction(angle: Angle, assignedItem: string | undefined): string {
+  if (assignedItem) {
     return `- Angle: "${angle.label}". The assigned item for this draft is ${assignedItem}.`;
   }
   return `- Angle: "${angle.label}". If shop notes list items, pick: ${angle.pick}.`;
 }
 
 function itemInstruction(item: string, assignedItem: string | undefined): string {
-  if (item === "skip") {
-    return "- Do not name any catalog item. Write about atmosphere, timing, or a sensory moment instead.";
-  }
   if (!assignedItem) return "";
   if (item === "must") {
     return `- Name ${assignedItem} once, in passing — not the entire point of the review.`;
@@ -124,7 +121,7 @@ function itemInstruction(item: string, assignedItem: string | undefined): string
 
 function proseFactInstruction(proseFact: string): string {
   if (proseFact === "allow") {
-    return "- Shop notes may inform atmosphere or staff details if relevant.";
+    return "- Shop notes may inform context or staff details if relevant.";
   }
   return "- Do not name staff or reference prose-only details from shop notes. Write from the experience.";
 }

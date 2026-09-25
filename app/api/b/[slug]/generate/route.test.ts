@@ -19,7 +19,7 @@ vi.mock("@/lib/review-recipe", () => ({
   sampleRecipeTrio: vi.fn(() => [
     { length: "short", voice: "specific", opener: "i_first", item: "must", proseFact: "forbid", texture: "clean", typo: "clean" },
     { length: "medium", voice: "hedged", opener: "i_first", item: "optional", proseFact: "forbid", texture: "clean", typo: "clean" },
-    { length: "short", voice: "clipped", opener: "i_first", item: "skip", proseFact: "allow", texture: "clean", typo: "clean" },
+    { length: "short", voice: "clipped", opener: "i_first", item: "optional", proseFact: "allow", texture: "clean", typo: "clean" },
   ]),
 }));
 vi.mock("@/lib/review-texture", () => ({
@@ -153,7 +153,7 @@ describe("POST /api/b/[slug]/generate", () => {
     expect(validItems.has(call1.assignedItem!)).toBe(true);
   });
 
-  it("passes no assignedItem to the skip-policy draft slot", async () => {
+  it("passes an assignedItem to every draft slot when catalog items are available", async () => {
     const businessWithNotes = {
       ...SAAS_BUSINESS,
       customInstructions: "# Mains\n- Shawarma\n- Mixed Grill\n\n# Sides\n- Hummus",
@@ -162,9 +162,10 @@ describe("POST /api/b/[slug]/generate", () => {
     mockGenerateDrafts.mockResolvedValue(THREE_DRAFTS);
     await makePost("joes-pizza-ab12");
 
-    // Call at index 2 has recipe.item = "skip" → assignedItem must be undefined.
-    const call2 = mockBuildPrompt.mock.calls[2][0];
-    expect(call2.assignedItem).toBeUndefined();
+    // All three drafts should receive an assigned item — no skip slot.
+    for (const [call] of mockBuildPrompt.mock.calls) {
+      expect(call.assignedItem).toBeDefined();
+    }
   });
 
   it("does not pass the full item catalog to buildPrompt — only prose", async () => {
