@@ -3,6 +3,7 @@ import {
   checkRateLimit,
   ipFromHeaders,
   rateLimitKey,
+  rateLimitSize,
   resetRateLimitStore,
 } from "./rate-limit";
 
@@ -35,6 +36,33 @@ describe("checkRateLimit", () => {
     // Wait for the 1ms window to expire
     await new Promise((r) => setTimeout(r, 10));
     expect(checkRateLimit(key, { limit: 5, windowMs: 1 })).toBe(true);
+  });
+
+  it("sweeps expired entries when a new check is made", async () => {
+    const keyA = "1.2.3.4:shop-abc";
+    const keyB = "1.2.3.4:shop-xyz";
+    // Fill key A with a 1ms window
+    checkRateLimit(keyA, { limit: 5, windowMs: 1 });
+    expect(rateLimitSize()).toBe(1);
+    // Wait for key A's window to expire
+    await new Promise((r) => setTimeout(r, 10));
+    // Checking key B should sweep key A out of the map
+    checkRateLimit(keyB, { limit: 5, windowMs: 30_000 });
+    expect(rateLimitSize()).toBe(1); // only key B remains
+  });
+
+  it("keeps a live entry and still enforces its limit after a sweep", async () => {
+    const keyA = "1.2.3.4:shop-abc";
+    const keyB = "5.6.7.8:shop-xyz";
+    // Exhaust key B with a long window
+    for (let i = 0; i < 5; i++) checkRateLimit(keyB, { limit: 5, windowMs: 30_000 });
+    // Let key A expire immediately
+    checkRateLimit(keyA, { limit: 5, windowMs: 1 });
+    await new Promise((r) => setTimeout(r, 10));
+    // Checking a new key sweeps A but not B
+    checkRateLimit("9.9.9.9:shop-new", { limit: 5, windowMs: 30_000 });
+    // B is still in the map and its 6th request is still blocked
+    expect(checkRateLimit(keyB, { limit: 5, windowMs: 30_000 })).toBe(false);
   });
 });
 
