@@ -11,6 +11,7 @@ type Draft = { id: string; text: string };
 type Props = {
   slug: string;
   writeReviewUrl: string;
+  testing?: boolean;
 };
 
 type GenerateResponse = {
@@ -18,7 +19,7 @@ type GenerateResponse = {
   writeReviewUrl?: string | null;
 };
 
-export function ScanDrafts({ slug, writeReviewUrl }: Props) {
+export function ScanDrafts({ slug, writeReviewUrl, testing = false }: Props) {
   const [drafts, setDrafts] = useState<Draft[]>([]);
   const [url, setUrl] = useState(writeReviewUrl);
   const [loading, setLoading] = useState(true);
@@ -48,9 +49,10 @@ export function ScanDrafts({ slug, writeReviewUrl }: Props) {
 
     async function load() {
       try {
-        const res = await api.post<GenerateResponse>(
-          `/api/b/${encodeURIComponent(slug)}/generate`
-        );
+        const generateUrl = testing
+          ? `/api/b/${encodeURIComponent(slug)}/generate?testing=true`
+          : `/api/b/${encodeURIComponent(slug)}/generate`;
+        const res = await api.post<GenerateResponse>(generateUrl);
         if (cancelled) return;
         setDrafts(res.data.reviews);
         if (res.data.writeReviewUrl) setUrl(res.data.writeReviewUrl);
@@ -89,6 +91,8 @@ export function ScanDrafts({ slug, writeReviewUrl }: Props) {
     <DraftPicker
       drafts={drafts}
       writeReviewUrl={url}
+      slug={slug}
+      testing={testing}
       generateFailed={generateFailed}
       rateLimited={rateLimited}
     />
