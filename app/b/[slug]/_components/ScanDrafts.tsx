@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { api } from "@/hooks/api";
 import { GenerateProgress } from "./DraftsSkeleton";
 import { DraftPicker } from "./DraftPicker";
-import { stepIndexAt, progressPctAt } from "@/lib/generate-progress";
+import { stepIndexAt, progressPctAt, GENERATE_PROGRESS_MS } from "@/lib/generate-progress";
 
 type Draft = { id: string; text: string };
 
@@ -25,7 +25,8 @@ export function ScanDrafts({ slug, writeReviewUrl }: Props) {
   const [generateFailed, setGenerateFailed] = useState(false);
   const [rateLimited, setRateLimited] = useState(false);
   const [elapsedMs, setElapsedMs] = useState(0);
-  // Captured at component mount — the timer counts from when the user lands.
+  const [attempt, setAttempt] = useState(0);
+  // Captured at generate start — the timer counts from when the user lands.
   const startRef = useRef<number>(Date.now());
 
   // Tick every 100ms while loading; clears automatically when loading ends.
@@ -39,6 +40,11 @@ export function ScanDrafts({ slug, writeReviewUrl }: Props) {
 
   useEffect(() => {
     let cancelled = false;
+
+    // Reset the progress window at the start of each attempt.
+    startRef.current = Date.now();
+    setElapsedMs(0);
+    setLoading(true);
 
     async function load() {
       try {
@@ -66,13 +72,15 @@ export function ScanDrafts({ slug, writeReviewUrl }: Props) {
     return () => {
       cancelled = true;
     };
-  }, [slug]);
+  }, [slug, attempt]);
 
   if (loading) {
     return (
       <GenerateProgress
         activeIndex={stepIndexAt(elapsedMs)}
         progressPct={progressPctAt(elapsedMs)}
+        slow={elapsedMs >= GENERATE_PROGRESS_MS}
+        onRegenerate={() => setAttempt((n) => n + 1)}
       />
     );
   }

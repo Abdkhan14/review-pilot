@@ -1,15 +1,27 @@
+"use client";
+
 import { GENERATE_STEPS } from "@/lib/generate-progress";
+import { Button } from "@/components/ui/button";
 
 type Props = {
   activeIndex?: number;
   progressPct?: number;
+  /** True once elapsed time has passed the 10 s progress window. */
+  slow?: boolean;
+  /** Called when the user clicks Regenerate. Only used when slow is true. */
+  onRegenerate?: () => void;
 };
 
 /**
  * Presentational progress list shown while drafts are being generated.
  * Frozen at step 0 in loading.tsx; driven by a timer in ScanDrafts.
  */
-export function GenerateProgress({ activeIndex = 0, progressPct = 0 }: Props) {
+export function GenerateProgress({
+  activeIndex = 0,
+  progressPct = 0,
+  slow = false,
+  onRegenerate,
+}: Props) {
   return (
     <div data-testid="generate-progress" className="flex flex-col gap-8">
       <ol className="flex flex-col gap-3">
@@ -41,6 +53,17 @@ export function GenerateProgress({ activeIndex = 0, progressPct = 0 }: Props) {
           style={{ width: `${progressPct}%` }}
         />
       </div>
+
+      {slow && (
+        <div className="flex flex-col items-center gap-3">
+          <p className="text-sm text-zinc-500">
+            Oops! Taking longer than expected.
+          </p>
+          <Button variant="outline" className="w-full" onClick={onRegenerate}>
+            Regenerate
+          </Button>
+        </div>
+      )}
     </div>
   );
 }
