@@ -65,7 +65,7 @@ export async function POST(
   }
 
   const angles = anglesForPrimaryType(snapshot.primaryType);
-  const recipes = sampleRecipeTrio();
+  const recipes = sampleRecipeTrio(Math.random, snapshot.primaryType);
 
   const messagesList = DRAFT_IDS.map((id, i) => {
     const recipe = recipes[i];

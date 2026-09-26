@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { buildPrompt, anglesForPrimaryType } from "./prompt-builder";
+import { businessKind } from "./business-kind";
 import type { BuildPromptInput } from "./prompt-builder";
 import type { PlaceSnapshot } from "./place-snapshot";
 import type { ReviewRecipe } from "./review-recipe";
@@ -239,6 +240,33 @@ describe("anglesForPrimaryType", () => {
     for (const angle of angles) {
       expect(labels).toContain(angle.label);
     }
+  });
+});
+
+describe("businessKind", () => {
+  it("classifies restaurant types correctly", () => {
+    expect(businessKind("pizza_restaurant")).toBe("restaurant");
+    expect(businessKind("cafe")).toBe("restaurant");
+    expect(businessKind("bakery")).toBe("restaurant");
+  });
+
+  it("classifies salon types correctly", () => {
+    expect(businessKind("hair_salon")).toBe("salon");
+    expect(businessKind("barber_shop")).toBe("salon");
+    expect(businessKind("spa")).toBe("salon");
+    expect(businessKind("beauty_salon")).toBe("salon");
+  });
+
+  it("classifies unknown types as generic", () => {
+    expect(businessKind("gym")).toBe("generic");
+    expect(businessKind("hardware_store")).toBe("generic");
+    expect(businessKind(undefined)).toBe("generic");
+  });
+
+  it("does not match partial tokens — space is not spa, barber is not bar", () => {
+    expect(businessKind("space")).toBe("generic");
+    expect(businessKind("barber")).toBe("salon"); // barber is its own token
+    expect(businessKind("minibar")).toBe("generic"); // bar must be a whole token
   });
 });
 
