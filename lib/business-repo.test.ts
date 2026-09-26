@@ -2,7 +2,7 @@ import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { execSync } from "child_process";
 import { PrismaClient } from "@prisma/client";
 import { rmSync } from "fs";
-import { create, findById, findBySlug, list, update } from "./business-repo";
+import { create, findById, findBySlug, list, update, remove } from "./business-repo";
 
 const DB_PATH = `./prisma/test-business-${Date.now()}.db`;
 const DB_URL = `file:${DB_PATH}`;
@@ -125,5 +125,20 @@ describe("update", () => {
     });
 
     expect(updated.customInstructions).toBeNull();
+  });
+});
+
+describe("remove", () => {
+  it("deletes the row; findById returns null afterwards", async () => {
+    const biz = await create(db, {
+      name: "Remove Me Shop",
+      placeId: "ChIJremove",
+      tier: "BASIC",
+    });
+
+    await remove(db, biz.id);
+
+    const found = await findById(db, biz.id);
+    expect(found).toBeNull();
   });
 });

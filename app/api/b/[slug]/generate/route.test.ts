@@ -7,8 +7,29 @@ vi.mock("@/lib/db", () => ({
     businessHandoff: { findUnique: vi.fn() },
   },
 }));
-vi.mock("@/lib/generate-drafts", () => ({ generateDrafts: vi.fn(), GenerationError: class GenerationError extends Error {} }));
-vi.mock("@/lib/prompt-builder", () => ({ buildPrompt: vi.fn(() => []) }));
+vi.mock("@/lib/generate-drafts", () => ({
+  generateDrafts: vi.fn(),
+  GenerationError: class GenerationError extends Error {},
+}));
+vi.mock("@/lib/prompt-builder", () => ({
+  buildPrompt: vi.fn(() => []),
+  anglesForPrimaryType: vi.fn(() => [
+    { label: "food angle", pick: "a main" },
+    { label: "service angle", pick: "a main" },
+    { label: "vibe angle", pick: "a main" },
+  ]),
+}));
+vi.mock("@/lib/review-recipe", () => ({
+  sampleRecipeTrio: vi.fn(() => [
+    { length: "short", voice: "specific", opener: "i_first", item: "must", proseFact: "forbid", texture: "clean", typo: "clean" },
+    { length: "medium", voice: "hedged", opener: "i_first", item: "optional", proseFact: "forbid", texture: "clean", typo: "clean" },
+    { length: "short", voice: "clipped", opener: "i_first", item: "optional", proseFact: "allow", texture: "clean", typo: "clean" },
+  ]),
+}));
+vi.mock("@/lib/review-texture", () => ({
+  applyTexture: vi.fn((text: string) => text),
+  applyTypo: vi.fn((text: string) => text),
+}));
 
 import * as repo from "@/lib/business-repo";
 import * as generateDraftsLib from "@/lib/generate-drafts";
@@ -18,10 +39,9 @@ import { resetRateLimitStore } from "@/lib/rate-limit";
 import { NextRequest } from "next/server";
 import { POST } from "./route";
 
-const mockBuildPrompt = vi.mocked(promptBuilderLib.buildPrompt);
-
 const mockFindBySlug = vi.mocked(repo.findBySlug);
 const mockGenerateDrafts = vi.mocked(generateDraftsLib.generateDrafts);
+const mockBuildPrompt = vi.mocked(promptBuilderLib.buildPrompt);
 const mockHandoffFindUnique = vi.mocked(db.businessHandoff.findUnique);
 
 const SNAPSHOT = {
@@ -52,9 +72,9 @@ const SAAS_BUSINESS = {
 const BASIC_BUSINESS = { ...SAAS_BUSINESS, tier: "BASIC" };
 
 const THREE_DRAFTS = [
-  { id: "a", angle: "food", text: "Great pizza!" },
-  { id: "b", angle: "service", text: "Friendly staff." },
-  { id: "c", angle: "vibe", text: "Lovely atmosphere." },
+  { id: "a", angle: "food angle", text: "Great pizza!" },
+  { id: "b", angle: "service angle", text: "Friendly staff." },
+  { id: "c", angle: "vibe angle", text: "Lovely atmosphere." },
 ];
 
 function makePost(slug: string, { testing = false }: { testing?: boolean } = {}): Promise<Response> {
@@ -94,8 +114,23 @@ describe("POST /api/b/[slug]/generate", () => {
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(body.reviews).toHaveLength(3);
-    expect(body.reviews[0]).toMatchObject({ id: "a", angle: "food" });
+    expect(body.reviews[0]).toMatchObject({ id: "a", angle: "food angle" });
     expect(body.writeReviewUrl).toBe(SNAPSHOT.writeReviewUrl);
+  });
+
+  it("calls buildPrompt 3 times — one per draft slot", async () => {
+    mockFindBySlug.mockResolvedValue(SAAS_BUSINESS as any);
+    mockGenerateDrafts.mockResolvedValue(THREE_DRAFTS);
+    await makePost("joes-pizza-ab12");
+    expect(mockBuildPrompt).toHaveBeenCalledTimes(3);
+  });
+
+  it("passes draft ids a, b, c to the three buildPrompt calls", async () => {
+    mockFindBySlug.mockResolvedValue(SAAS_BUSINESS as any);
+    mockGenerateDrafts.mockResolvedValue(THREE_DRAFTS);
+    await makePost("joes-pizza-ab12");
+    const ids = mockBuildPrompt.mock.calls.map((c) => c[0].id);
+    expect(ids).toEqual(["a", "b", "c"]);
   });
 
   it("returns 500 when GenerationError is thrown and does not leak model output", async () => {
@@ -111,7 +146,7 @@ describe("POST /api/b/[slug]/generate", () => {
     expect(body.error).not.toContain("model returned non-JSON content");
   });
 
-  it("passes assigned items from catalog to buildPrompt when notes have list items", async () => {
+  it("passes an assigned item from catalog to buildPrompt (non-skip slots) when notes have list items", async () => {
     const businessWithNotes = {
       ...SAAS_BUSINESS,
       customInstructions: "# Mains\n- Shawarma\n- Mixed Grill\n\n# Sides\n- Hummus\n- Falafel\n\n# Drinks\n- Mint Tea",
@@ -120,11 +155,24 @@ describe("POST /api/b/[slug]/generate", () => {
     mockGenerateDrafts.mockResolvedValue(THREE_DRAFTS);
     await makePost("joes-pizza-ab12");
 
-    const call = mockBuildPrompt.mock.calls[0][0];
-    expect(call.assignedItems).toHaveLength(3);
     const validItems = new Set(["Shawarma", "Mixed Grill", "Hummus", "Falafel", "Mint Tea"]);
-    for (const item of call.assignedItems!) {
-      expect(validItems.has(item.name)).toBe(true);
+    const call0 = mockBuildPrompt.mock.calls[0][0];
+    const call1 = mockBuildPrompt.mock.calls[1][0];
+    expect(validItems.has(call0.assignedItem!)).toBe(true);
+    expect(validItems.has(call1.assignedItem!)).toBe(true);
+  });
+
+  it("passes an assignedItem to every draft slot when catalog items are available", async () => {
+    const businessWithNotes = {
+      ...SAAS_BUSINESS,
+      customInstructions: "# Mains\n- Shawarma\n- Mixed Grill\n\n# Sides\n- Hummus",
+    };
+    mockFindBySlug.mockResolvedValue(businessWithNotes as any);
+    mockGenerateDrafts.mockResolvedValue(THREE_DRAFTS);
+    await makePost("joes-pizza-ab12");
+
+    for (const [call] of mockBuildPrompt.mock.calls) {
+      expect(call.assignedItem).toBeDefined();
     }
   });
 
@@ -137,15 +185,14 @@ describe("POST /api/b/[slug]/generate", () => {
     mockGenerateDrafts.mockResolvedValue(THREE_DRAFTS);
     await makePost("joes-pizza-ab12");
 
-    const call = mockBuildPrompt.mock.calls[0][0];
-    // Prose override guidance must be present.
-    expect(call.customInstructions).toContain("Don't mention wait times.");
-    // The raw item list must not be forwarded to the model.
-    expect(call.customInstructions).not.toContain("Shawarma");
-    expect(call.customInstructions).not.toContain("Hummus");
+    for (const [call] of mockBuildPrompt.mock.calls) {
+      expect(call.customInstructions).toContain("Don't mention wait times.");
+      expect(call.customInstructions).not.toContain("Shawarma");
+      expect(call.customInstructions).not.toContain("Hummus");
+    }
   });
 
-  it("passes no assignedItems to buildPrompt when notes have no list items", async () => {
+  it("passes no assignedItem to any buildPrompt call when notes have no list items", async () => {
     const businessWithProseOnly = {
       ...SAAS_BUSINESS,
       customInstructions: "Always mention the open kitchen.",
@@ -154,21 +201,19 @@ describe("POST /api/b/[slug]/generate", () => {
     mockGenerateDrafts.mockResolvedValue(THREE_DRAFTS);
     await makePost("joes-pizza-ab12");
 
-    const call = mockBuildPrompt.mock.calls[0][0];
-    expect(call.assignedItems).toBeUndefined();
-    // Prose-only notes are passed through unchanged.
-    expect(call.customInstructions).toBe("Always mention the open kitchen.");
+    for (const [call] of mockBuildPrompt.mock.calls) {
+      expect(call.assignedItem).toBeUndefined();
+      expect(call.customInstructions).toBe("Always mention the open kitchen.");
+    }
   });
 
   it("returns 429 on the 6th request in the window and does not call generateDrafts", async () => {
     mockFindBySlug.mockResolvedValue(SAAS_BUSINESS as any);
     mockGenerateDrafts.mockResolvedValue(THREE_DRAFTS);
-    // Exhaust the limit (5 allowed)
     for (let i = 0; i < 5; i++) {
       const res = await makePost("joes-pizza-ab12");
       expect(res.status).toBe(200);
     }
-    // 6th is rate limited
     const res = await makePost("joes-pizza-ab12");
     expect(res.status).toBe(429);
     expect(mockGenerateDrafts).toHaveBeenCalledTimes(5);
@@ -189,7 +234,6 @@ describe("POST /api/b/[slug]/generate", () => {
   it("returns 200 when capped but ?testing=true is set — skips cap check entirely", async () => {
     mockFindBySlug.mockResolvedValue(SAAS_BUSINESS as any);
     mockGenerateDrafts.mockResolvedValue(THREE_DRAFTS);
-    // handoffFindUnique should NOT be called in testing mode
     const today = new Date().toISOString().slice(0, 10);
     mockHandoffFindUnique.mockResolvedValue({ businessId: SAAS_BUSINESS.id, count: 6, day: today });
     const res = await makePost("joes-pizza-ab12", { testing: true });

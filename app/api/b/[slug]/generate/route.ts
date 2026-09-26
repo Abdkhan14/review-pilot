@@ -2,13 +2,17 @@ import "server-only";
 import { NextRequest, NextResponse } from "next/server";
 import { findBySlug } from "@/lib/business-repo";
 import { db } from "@/lib/db";
-import { buildPrompt } from "@/lib/prompt-builder";
+import { buildPrompt, anglesForPrimaryType } from "@/lib/prompt-builder";
 import { generateDrafts, GenerationError } from "@/lib/generate-drafts";
 import { ipFromHeaders, rateLimitKey, checkRateLimit } from "@/lib/rate-limit";
 import { parseCatalog, sampleItems, DRAFT_COUNT } from "@/lib/catalog-items";
 import { todayCount, isDailyCapped, nextUtcMidnightMs } from "@/lib/handoff";
+import { sampleRecipeTrio } from "@/lib/review-recipe";
+import { applyTexture, applyTypo } from "@/lib/review-texture";
 import type { PlaceSnapshot } from "@/lib/place-snapshot";
-import type { AssignedItem } from "@/lib/prompt-builder";
+
+const DRAFT_IDS = ["a", "b", "c"] as const;
+type DraftId = (typeof DRAFT_IDS)[number];
 
 function snapshotFromBusiness(business: {
   details: string | null;
@@ -60,40 +64,56 @@ export async function POST(
   }
 
   const snapshot = snapshotFromBusiness(business);
-
   const rawNotes = business.customInstructions ?? undefined;
 
-  // Parse the catalog once. When items are assignable we send only the prose
-  // to the model — not the full item list — to keep the prompt short and
-  // prevent the model from gravitating to salient catalog entries.
+  // Parse the catalog once. Send only prose to the model — not the full item
+  // list — to keep each prompt short and prevent gravitating to salient entries.
   let promptNotes: string | undefined = rawNotes;
-  let assignedItems: AssignedItem[] | undefined;
+  let itemNames: string[] = [];
 
   if (rawNotes) {
     const catalog = parseCatalog(rawNotes);
     const names = sampleItems(catalog, DRAFT_COUNT);
     if (names.length > 0) {
-      assignedItems = names.map((name, i) => ({
-        id: String.fromCharCode(97 + i) as AssignedItem["id"],
-        name,
-      }));
-      // Only pass prose override guidance; the full item list is not needed.
+      itemNames = names;
       promptNotes = catalog.prose || undefined;
     }
   }
 
-  const messages = buildPrompt({
-    snapshot,
-    customInstructions: promptNotes,
-    assignedItems,
+  const angles = anglesForPrimaryType(snapshot.primaryType);
+  const recipes = sampleRecipeTrio(Math.random, snapshot.primaryType);
+
+  const messagesList = DRAFT_IDS.map((id, i) => {
+    const recipe = recipes[i];
+    const assignedItem = itemNames[i] || undefined;
+    return buildPrompt({
+      id: id as DraftId,
+      snapshot,
+      angle: angles[i],
+      recipe,
+      assignedItem,
+      customInstructions: promptNotes,
+    });
   });
 
   try {
-    const reviews = await generateDrafts(messages);
-    return NextResponse.json({
-      reviews,
-      writeReviewUrl: business.writeReviewUrl,
+    const drafts = await generateDrafts(messagesList);
+
+    // Apply light texture post-pass to at most one draft (enforced by sampleRecipeTrio).
+    // Then apply a rare one-word typo swap (also at most one draft, never the
+    // same draft as the texture slip).
+    const reviews = drafts.map((draft, i) => {
+      const recipe = recipes[i];
+      const assignedItem = itemNames[i];
+      const protectedStrings = [snapshot.name, ...(assignedItem ? [assignedItem] : [])];
+
+      let text = draft.text;
+      if (recipe.texture !== "clean") text = applyTexture(text, recipe.texture);
+      if (recipe.typo !== "clean") text = applyTypo(text, recipe.typo, protectedStrings);
+      return text !== draft.text ? { ...draft, text } : draft;
     });
+
+    return NextResponse.json({ reviews, writeReviewUrl: business.writeReviewUrl });
   } catch (err) {
     if (err instanceof GenerationError) {
       return NextResponse.json({ error: "generation failed" }, { status: 500 });

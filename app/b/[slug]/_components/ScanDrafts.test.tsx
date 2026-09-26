@@ -1,6 +1,6 @@
 /// @vitest-environment jsdom
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, waitFor, cleanup } from "@testing-library/react";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { render, screen, waitFor, cleanup, fireEvent, act } from "@testing-library/react";
 
 vi.mock("@/hooks/api", () => ({ api: { post: vi.fn() } }));
 
@@ -19,6 +19,10 @@ const REVIEW_URL = "https://search.google.com/local/writereview?placeid=abc";
 beforeEach(() => {
   mockPost.mockReset();
   cleanup();
+});
+
+afterEach(() => {
+  vi.useRealTimers();
 });
 
 describe("ScanDrafts", () => {
@@ -76,5 +80,31 @@ describe("ScanDrafts", () => {
         "/api/b/joes-pizza-ab12/generate?testing=true"
       )
     );
+  });
+
+  it("shows the Oops message after 10 s when the request is still pending", async () => {
+    vi.useFakeTimers();
+    mockPost.mockReturnValue(new Promise(() => {}));
+    render(<ScanDrafts slug="joes-pizza-ab12" writeReviewUrl={REVIEW_URL} />);
+    await act(async () => {
+      vi.advanceTimersByTime(10_000);
+    });
+    expect(screen.getByText(/oops/i)).toBeDefined();
+    expect(screen.getByRole("button", { name: /regenerate/i })).toBeDefined();
+  });
+
+  it("fires a second POST and hides the Oops message when Regenerate is clicked", async () => {
+    vi.useFakeTimers();
+    mockPost.mockReturnValue(new Promise(() => {}));
+    render(<ScanDrafts slug="joes-pizza-ab12" writeReviewUrl={REVIEW_URL} />);
+    await act(async () => {
+      vi.advanceTimersByTime(10_000);
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: /regenerate/i }));
+    });
+    expect(mockPost).toHaveBeenCalledTimes(2);
+    // Timer reset — Oops message gone until another 10 s elapses.
+    expect(screen.queryByText(/oops/i)).toBeNull();
   });
 });

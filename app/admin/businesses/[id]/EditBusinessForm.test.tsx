@@ -18,10 +18,12 @@ vi.mock("@/hooks/useUpdateBusiness", () => ({
   }),
 }));
 
+
 const defaultProps = {
   id: "cuid-abc123",
   name: "Joe's Pizza",
   slug: "joes-pizza-ab12",
+  scanUrl: "https://example.com/b/joes-pizza-ab12",
   initialTier: "BASIC" as const,
   initialCustomInstructions: null,
 };
@@ -29,6 +31,12 @@ const defaultProps = {
 describe("EditBusinessForm", () => {
   beforeEach(() => vi.clearAllMocks());
   afterEach(() => cleanup());
+
+  it("links to the scan URL the QR code opens", () => {
+    render(<EditBusinessForm {...defaultProps} />);
+    const link = screen.getByRole("link", { name: defaultProps.scanUrl });
+    expect(link.getAttribute("href")).toBe(defaultProps.scanUrl);
+  });
 
   it("shows name and slug as read-only text", () => {
     render(<EditBusinessForm {...defaultProps} />);
@@ -99,4 +107,5 @@ describe("EditBusinessForm", () => {
     const textarea = screen.getByLabelText(/shop notes/i) as HTMLTextAreaElement;
     expect(textarea.value).toBe("some notes");
   });
+
 });

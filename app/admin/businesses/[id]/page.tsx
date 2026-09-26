@@ -7,6 +7,7 @@ import { todayCount } from "@/lib/handoff";
 import EditBusinessForm from "./EditBusinessForm";
 import QrPanel from "./QrPanel";
 import HandoffPanel from "./HandoffPanel";
+import DeleteBusinessButton from "./DeleteBusinessButton";
 
 /** Do not prerender — business rows change after deploy. */
 export const dynamic = "force-dynamic";
@@ -44,11 +45,13 @@ export default async function EditBusinessPage({
         id={business.id}
         name={business.name}
         slug={business.slug}
+        scanUrl={scanUrl}
         initialTier={business.tier as "BASIC" | "SAAS"}
         initialCustomInstructions={business.customInstructions ?? null}
       />
       <HandoffPanel businessId={business.id} initialCount={handoffCount} />
       <QrPanel id={business.id} slug={business.slug} svg={svg} />
+      <DeleteBusinessButton id={business.id} />
     </main>
   );
 }

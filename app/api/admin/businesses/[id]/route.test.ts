@@ -2,18 +2,30 @@ import { vi, describe, it, expect, beforeEach } from "vitest";
 
 vi.mock("server-only", () => ({}));
 vi.mock("@/lib/auth", () => ({ verifySession: vi.fn() }));
-vi.mock("@/lib/business-repo", () => ({ findById: vi.fn(), update: vi.fn() }));
+vi.mock("@/lib/business-repo", () => ({ findById: vi.fn(), update: vi.fn(), remove: vi.fn() }));
 vi.mock("@/lib/db", () => ({ db: {} }));
 
 import * as auth from "@/lib/auth";
 import * as repo from "@/lib/business-repo";
 import { NextRequest } from "next/server";
-import { PATCH } from "./route";
+import { PATCH, DELETE } from "./route";
 import { ADMIN_COOKIE } from "@/lib/session-cookie";
 
 const mockVerify = vi.mocked(auth.verifySession);
 const mockFindById = vi.mocked(repo.findById);
 const mockUpdate = vi.mocked(repo.update);
+const mockRemove = vi.mocked(repo.remove);
+
+function makeDelete(id: string, cookie?: string): Promise<Response> {
+  const headers: Record<string, string> = {};
+  if (cookie) headers["cookie"] = `${ADMIN_COOKIE}=${cookie}`;
+  const req = new NextRequest(`http://localhost/api/admin/businesses/${id}`, {
+    method: "DELETE",
+    headers,
+  });
+  const ctx = { params: Promise.resolve({ id }) };
+  return DELETE(req, ctx);
+}
 
 function makePatch(id: string, body: unknown, cookie?: string): Promise<Response> {
   const headers: Record<string, string> = { "Content-Type": "application/json" };
@@ -116,5 +128,41 @@ describe("PATCH /api/admin/businesses/[id]", () => {
     const res = await makePatch("cuid-1", { tier: "SAAS", slug: "hacked-slug" }, "valid-token");
     expect(res.status).toBe(200);
     expect((await res.json()).slug).toBe(originalSlug);
+  });
+});
+
+describe("DELETE /api/admin/businesses/[id]", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it("returns 401 without cookie", async () => {
+    const res = await makeDelete("cuid-1");
+    expect(res.status).toBe(401);
+    expect(mockFindById).not.toHaveBeenCalled();
+    expect(mockRemove).not.toHaveBeenCalled();
+  });
+
+  it("returns 401 with an invalid cookie", async () => {
+    mockVerify.mockRejectedValue(new Error("bad token"));
+    const res = await makeDelete("cuid-1", "bad-token");
+    expect(res.status).toBe(401);
+    expect(mockRemove).not.toHaveBeenCalled();
+  });
+
+  it("returns 404 when findById returns null", async () => {
+    mockVerify.mockResolvedValue({ role: "admin" });
+    mockFindById.mockResolvedValue(null);
+    const res = await makeDelete("unknown-id", "valid-token");
+    expect(res.status).toBe(404);
+    expect(mockRemove).not.toHaveBeenCalled();
+  });
+
+  it("returns 204 and calls remove with the id", async () => {
+    mockVerify.mockResolvedValue({ role: "admin" });
+    mockFindById.mockResolvedValue({ id: "cuid-1" } as any);
+    mockRemove.mockResolvedValue({ id: "cuid-1" } as any);
+
+    const res = await makeDelete("cuid-1", "valid-token");
+    expect(res.status).toBe(204);
+    expect(mockRemove).toHaveBeenCalledWith(expect.anything(), "cuid-1");
   });
 });

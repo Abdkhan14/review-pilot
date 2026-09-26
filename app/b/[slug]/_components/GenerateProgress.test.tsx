@@ -1,6 +1,6 @@
 /// @vitest-environment jsdom
-import { describe, it, expect, beforeEach } from "vitest";
-import { render, screen, cleanup } from "@testing-library/react";
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import { render, screen, cleanup, fireEvent } from "@testing-library/react";
 
 beforeEach(() => cleanup());
 import { GenerateProgress } from "./DraftsSkeleton";
@@ -40,5 +40,23 @@ describe("GenerateProgress", () => {
   it("exposes data-testid for integration tests", () => {
     render(<GenerateProgress />);
     expect(screen.getByTestId("generate-progress")).toBeDefined();
+  });
+
+  it("hides the Oops message and Regenerate button when slow is not set", () => {
+    render(<GenerateProgress />);
+    expect(screen.queryByText(/oops/i)).toBeNull();
+    expect(screen.queryByRole("button", { name: /regenerate/i })).toBeNull();
+  });
+
+  it("shows the Oops message when slow is true", () => {
+    render(<GenerateProgress slow />);
+    expect(screen.getByText(/oops/i)).toBeDefined();
+  });
+
+  it("calls onRegenerate when the Regenerate button is clicked", () => {
+    const onRegenerate = vi.fn();
+    render(<GenerateProgress slow onRegenerate={onRegenerate} />);
+    fireEvent.click(screen.getByRole("button", { name: /regenerate/i }));
+    expect(onRegenerate).toHaveBeenCalledOnce();
   });
 });
