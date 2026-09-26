@@ -21,11 +21,13 @@ type Draft = { id: string; text: string };
 type Props = {
   drafts: Draft[];
   writeReviewUrl: string;
+  slug: string;
+  testing?: boolean;
   generateFailed?: boolean;
   rateLimited?: boolean;
 };
 
-export function DraftPicker({ drafts, writeReviewUrl, generateFailed = false, rateLimited = false }: Props) {
+export function DraftPicker({ drafts, writeReviewUrl, slug, testing = false, generateFailed = false, rateLimited = false }: Props) {
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
   const visibleDrafts = copiedId
@@ -34,6 +36,12 @@ export function DraftPicker({ drafts, writeReviewUrl, generateFailed = false, ra
 
   const showOr = !copiedId && drafts.length > 0;
   const linkLabel = copiedId ? "Go to Google Reviews" : "Skip to Google Reviews";
+
+  function handleGoogleClick() {
+    if (copiedId && !testing) {
+      navigator.sendBeacon(`/api/b/${encodeURIComponent(slug)}/handoff`);
+    }
+  }
 
   return (
     <div className="flex flex-col gap-4" data-testid="draft-picker">
@@ -76,7 +84,7 @@ export function DraftPicker({ drafts, writeReviewUrl, generateFailed = false, ra
         variant="outline"
         className="w-full py-3"
       >
-        <a href={writeReviewUrl}>{linkLabel}</a>
+        <a href={writeReviewUrl} onClick={handleGoogleClick}>{linkLabel}</a>
       </Button>
     </div>
   );

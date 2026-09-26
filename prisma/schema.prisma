@@ -12,14 +12,22 @@ datasource db {
 // SQLite does not support Json; details is stored as a JSON string
 
 model Business {
-  id                 String    @id @default(cuid())
-  slug               String    @unique
-  tier               String    // "BASIC" | "SAAS"
+  id                 String           @id @default(cuid())
+  slug               String           @unique
+  tier               String           // "BASIC" | "SAAS"
   name               String
   placeId            String
   customInstructions String?
-  writeReviewUrl     String?   // googleMapsLinks.writeAReviewUri from Places API (New)
-  details            String?   // JSON string of normalized Place Details
+  writeReviewUrl     String?          // googleMapsLinks.writeAReviewUri from Places API (New)
+  details            String?          // JSON string of normalized Place Details
   detailsFetchedAt   DateTime?
-  createdAt          DateTime  @default(now())
+  createdAt          DateTime         @default(now())
+  handoff            BusinessHandoff?
+}
+
+model BusinessHandoff {
+  businessId String   @id
+  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  count      Int
+  day        String   // UTC "YYYY-MM-DD"
 }

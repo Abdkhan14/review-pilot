@@ -65,4 +65,16 @@ describe("ScanDrafts", () => {
     expect(await screen.findByText(/wait 30 seconds/i)).toBeDefined();
     expect(screen.queryByText(/couldn't generate/i)).toBeNull();
   });
+
+  it("posts to the ?testing=true URL when the testing prop is true", async () => {
+    mockPost.mockResolvedValue({
+      data: { reviews: REVIEWS, writeReviewUrl: REVIEW_URL },
+    });
+    render(<ScanDrafts slug="joes-pizza-ab12" writeReviewUrl={REVIEW_URL} testing />);
+    await waitFor(() =>
+      expect(mockPost).toHaveBeenCalledWith(
+        "/api/b/joes-pizza-ab12/generate?testing=true"
+      )
+    );
+  });
 });

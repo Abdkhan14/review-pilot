@@ -2,13 +2,18 @@ import { vi, describe, it, expect, beforeEach } from "vitest";
 
 vi.mock("server-only", () => ({}));
 vi.mock("@/lib/business-repo", () => ({ findBySlug: vi.fn() }));
-vi.mock("@/lib/db", () => ({ db: {} }));
+vi.mock("@/lib/db", () => ({
+  db: {
+    businessHandoff: { findUnique: vi.fn() },
+  },
+}));
 vi.mock("@/lib/generate-drafts", () => ({ generateDrafts: vi.fn(), GenerationError: class GenerationError extends Error {} }));
 vi.mock("@/lib/prompt-builder", () => ({ buildPrompt: vi.fn(() => []) }));
 
 import * as repo from "@/lib/business-repo";
 import * as generateDraftsLib from "@/lib/generate-drafts";
 import * as promptBuilderLib from "@/lib/prompt-builder";
+import { db } from "@/lib/db";
 import { resetRateLimitStore } from "@/lib/rate-limit";
 import { NextRequest } from "next/server";
 import { POST } from "./route";
@@ -17,6 +22,7 @@ const mockBuildPrompt = vi.mocked(promptBuilderLib.buildPrompt);
 
 const mockFindBySlug = vi.mocked(repo.findBySlug);
 const mockGenerateDrafts = vi.mocked(generateDraftsLib.generateDrafts);
+const mockHandoffFindUnique = vi.mocked(db.businessHandoff.findUnique);
 
 const SNAPSHOT = {
   placeId: "ChIJ123",
@@ -51,10 +57,11 @@ const THREE_DRAFTS = [
   { id: "c", angle: "vibe", text: "Lovely atmosphere." },
 ];
 
-function makePost(slug: string): Promise<Response> {
-  const req = new NextRequest(`http://localhost/api/b/${slug}/generate`, {
-    method: "POST",
-  });
+function makePost(slug: string, { testing = false }: { testing?: boolean } = {}): Promise<Response> {
+  const url = testing
+    ? `http://localhost/api/b/${slug}/generate?testing=true`
+    : `http://localhost/api/b/${slug}/generate`;
+  const req = new NextRequest(url, { method: "POST" });
   return POST(req, { params: Promise.resolve({ slug }) });
 }
 
@@ -62,6 +69,8 @@ describe("POST /api/b/[slug]/generate", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     resetRateLimitStore();
+    // Default: no handoff row (not capped)
+    mockHandoffFindUnique.mockResolvedValue(null);
   });
 
   it("returns 404 for an unknown slug", async () => {
@@ -163,5 +172,29 @@ describe("POST /api/b/[slug]/generate", () => {
     const res = await makePost("joes-pizza-ab12");
     expect(res.status).toBe(429);
     expect(mockGenerateDrafts).toHaveBeenCalledTimes(5);
+  });
+
+  it("returns 409 daily_cap when the business has reached the daily handoff limit", async () => {
+    mockFindBySlug.mockResolvedValue(SAAS_BUSINESS as any);
+    const today = new Date().toISOString().slice(0, 10);
+    mockHandoffFindUnique.mockResolvedValue({ businessId: SAAS_BUSINESS.id, count: 6, day: today });
+    const res = await makePost("joes-pizza-ab12");
+    expect(res.status).toBe(409);
+    const body = await res.json();
+    expect(body.error).toBe("daily_cap");
+    expect(body.retryAt).toBeTypeOf("number");
+    expect(mockGenerateDrafts).not.toHaveBeenCalled();
+  });
+
+  it("returns 200 when capped but ?testing=true is set — skips cap check entirely", async () => {
+    mockFindBySlug.mockResolvedValue(SAAS_BUSINESS as any);
+    mockGenerateDrafts.mockResolvedValue(THREE_DRAFTS);
+    // handoffFindUnique should NOT be called in testing mode
+    const today = new Date().toISOString().slice(0, 10);
+    mockHandoffFindUnique.mockResolvedValue({ businessId: SAAS_BUSINESS.id, count: 6, day: today });
+    const res = await makePost("joes-pizza-ab12", { testing: true });
+    expect(res.status).toBe(200);
+    expect(mockHandoffFindUnique).not.toHaveBeenCalled();
+    expect(mockGenerateDrafts).toHaveBeenCalledTimes(1);
   });
 });

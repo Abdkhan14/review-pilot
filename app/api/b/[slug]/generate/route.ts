@@ -6,6 +6,7 @@ import { buildPrompt } from "@/lib/prompt-builder";
 import { generateDrafts, GenerationError } from "@/lib/generate-drafts";
 import { ipFromHeaders, rateLimitKey, checkRateLimit } from "@/lib/rate-limit";
 import { parseCatalog, sampleItems, DRAFT_COUNT } from "@/lib/catalog-items";
+import { todayCount, isDailyCapped, nextUtcMidnightMs } from "@/lib/handoff";
 import type { PlaceSnapshot } from "@/lib/place-snapshot";
 import type { AssignedItem } from "@/lib/prompt-builder";
 
@@ -41,6 +42,21 @@ export async function POST(
   const ip = ipFromHeaders(_req.headers);
   if (!checkRateLimit(rateLimitKey(ip, slug))) {
     return NextResponse.json({ error: "rate limited" }, { status: 429 });
+  }
+
+  const isTesting = _req.nextUrl.searchParams.get("testing") === "true";
+
+  if (!isTesting) {
+    const handoffRow = await db.businessHandoff.findUnique({
+      where: { businessId: business.id },
+    });
+    const now = new Date();
+    if (isDailyCapped(todayCount(handoffRow, now))) {
+      return NextResponse.json(
+        { error: "daily_cap", retryAt: nextUtcMidnightMs(now) },
+        { status: 409 },
+      );
+    }
   }
 
   const snapshot = snapshotFromBusiness(business);
