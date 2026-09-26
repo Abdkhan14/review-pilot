@@ -5,6 +5,18 @@ import VOICES_JSON from "./recipes/voices.json";
 import OPENERS_JSON from "./recipes/openers.json";
 import TEXTURES_JSON from "./recipes/textures.json";
 
+// Restaurant-only ids as declared in the catalog files.
+const RESTAURANT_ONLY_OPENER_IDS = new Set(
+  (OPENERS_JSON as { id: string; kinds?: string[] }[])
+    .filter((e) => e.kinds?.includes("restaurant"))
+    .map((e) => e.id),
+);
+const RESTAURANT_ONLY_VOICE_IDS = new Set(
+  (VOICES_JSON as { id: string; kinds?: string[] }[])
+    .filter((e) => e.kinds?.includes("restaurant"))
+    .map((e) => e.id),
+);
+
 /** Deterministic rng seeded from an index — lets us run many trio samples. */
 function makeRng(seed: number) {
   let s = seed;
@@ -153,6 +165,63 @@ describe("sampleRecipeTrio", () => {
         }
       }
     }
+  });
+
+  it("salon primaryType never produces a restaurant-only opener or voice", () => {
+    for (let seed = 0; seed < 200; seed++) {
+      const recipes = sampleRecipeTrio(makeRng(seed), "hair_salon");
+      for (const r of recipes) {
+        expect(RESTAURANT_ONLY_OPENER_IDS.has(r.opener)).toBe(false);
+        expect(RESTAURANT_ONLY_VOICE_IDS.has(r.voice)).toBe(false);
+      }
+    }
+  });
+
+  it("generic primaryType never produces a restaurant-only opener or voice", () => {
+    for (let seed = 0; seed < 200; seed++) {
+      const recipes = sampleRecipeTrio(makeRng(seed), "gym");
+      for (const r of recipes) {
+        expect(RESTAURANT_ONLY_OPENER_IDS.has(r.opener)).toBe(false);
+        expect(RESTAURANT_ONLY_VOICE_IDS.has(r.voice)).toBe(false);
+      }
+    }
+  });
+
+  it("missing primaryType never produces a restaurant-only opener or voice", () => {
+    for (let seed = 0; seed < 200; seed++) {
+      const recipes = sampleRecipeTrio(makeRng(seed), undefined);
+      for (const r of recipes) {
+        expect(RESTAURANT_ONLY_OPENER_IDS.has(r.opener)).toBe(false);
+        expect(RESTAURANT_ONLY_VOICE_IDS.has(r.voice)).toBe(false);
+      }
+    }
+  });
+
+  it("restaurant primaryType can produce restaurant-only opener ids", () => {
+    const seenRestaurantOnlyOpener = new Set<string>();
+    for (let seed = 0; seed < 500; seed++) {
+      const recipes = sampleRecipeTrio(makeRng(seed), "pizza_restaurant");
+      for (const r of recipes) {
+        if (RESTAURANT_ONLY_OPENER_IDS.has(r.opener)) {
+          seenRestaurantOnlyOpener.add(r.opener);
+        }
+      }
+    }
+    // At least one restaurant-only opener should have appeared.
+    expect(seenRestaurantOnlyOpener.size).toBeGreaterThan(0);
+  });
+
+  it("restaurant primaryType can produce restaurant-only voice ids", () => {
+    const seenRestaurantOnlyVoice = new Set<string>();
+    for (let seed = 0; seed < 500; seed++) {
+      const recipes = sampleRecipeTrio(makeRng(seed), "pizza_restaurant");
+      for (const r of recipes) {
+        if (RESTAURANT_ONLY_VOICE_IDS.has(r.voice)) {
+          seenRestaurantOnlyVoice.add(r.voice);
+        }
+      }
+    }
+    expect(seenRestaurantOnlyVoice.size).toBeGreaterThan(0);
   });
 });
 

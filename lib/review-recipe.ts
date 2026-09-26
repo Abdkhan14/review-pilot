@@ -2,6 +2,7 @@ import LENGTHS_JSON from "./recipes/lengths.json";
 import VOICES_JSON from "./recipes/voices.json";
 import OPENERS_JSON from "./recipes/openers.json";
 import TEXTURES_JSON from "./recipes/textures.json";
+import { businessKind } from "./business-kind";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -36,6 +37,17 @@ export const ALL_VOICE_IDS: readonly string[] = VOICES_JSON.map((v) => v.id);
 export const ALL_OPENER_IDS: readonly string[] = OPENERS_JSON.map((o) => o.id);
 export const ALL_TEXTURE_IDS: readonly string[] = TEXTURES_JSON.map((t) => t.id);
 
+type KindEntry = { id: string; kinds?: string[] };
+
+/**
+ * Returns ids from a catalog that are valid for the given business kind.
+ * Entries without a `kinds` field are available for all kinds.
+ * Entries with `kinds: ["restaurant"]` are only available for restaurants.
+ */
+function idsForKind(catalog: KindEntry[], kind: string): readonly string[] {
+  return catalog.filter((e) => !e.kinds || e.kinds.includes(kind)).map((e) => e.id);
+}
+
 // ─── Sampler ──────────────────────────────────────────────────────────────────
 
 type Rng = () => number;
@@ -61,10 +73,14 @@ function shuffle<T>(arr: T[], rng: Rng): void {
  *   The swap always lands on a texture-clean draft so grammar slip and typo
  *   never stack on the same review.
  *
- * Every other pick (voice, opener, the non-clean texture id) is independent
- * uniform random with no weighting.
+ * Voice and opener are sampled from pools filtered by primaryType so
+ * restaurant-only entries never fire for salon or generic businesses.
  */
-export function sampleRecipeTrio(rng: Rng = Math.random): [ReviewRecipe, ReviewRecipe, ReviewRecipe] {
+export function sampleRecipeTrio(rng: Rng = Math.random, primaryType?: string): [ReviewRecipe, ReviewRecipe, ReviewRecipe] {
+  const kind = businessKind(primaryType);
+  const voiceIds = idsForKind(VOICES_JSON as KindEntry[], kind);
+  const openerIds = idsForKind(OPENERS_JSON as KindEntry[], kind);
+
   // Lengths: three distinct ids from a shuffle of the catalog.
   const shuffledLengths = [...ALL_LENGTH_IDS];
   shuffle(shuffledLengths, rng);
@@ -106,8 +122,8 @@ export function sampleRecipeTrio(rng: Rng = Math.random): [ReviewRecipe, ReviewR
 
   return [0, 1, 2].map((i) => ({
     length: lengths[i],
-    voice: pick(ALL_VOICE_IDS, rng),
-    opener: pick(ALL_OPENER_IDS, rng),
+    voice: pick(voiceIds, rng),
+    opener: pick(openerIds, rng),
     item: itemSlots[i],
     proseFact: proseFactSlots[i],
     texture: textureSlots[i],

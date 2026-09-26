@@ -7,6 +7,7 @@ import GENERIC_POOL from "./angles/generic.json";
 import LENGTHS_JSON from "./recipes/lengths.json";
 import VOICES_JSON from "./recipes/voices.json";
 import OPENERS_JSON from "./recipes/openers.json";
+import { businessKind } from "./business-kind";
 
 export type PromptMessage = { role: "system" | "user"; content: string };
 export type Angle = { label: string; pick: string };
@@ -30,16 +31,13 @@ const LENGTH_MAP = new Map(LENGTHS_JSON.map((l) => [l.id, l.instruction]));
 const VOICE_MAP = new Map(VOICES_JSON.map((v) => [v.id, v.instruction]));
 const OPENER_MAP = new Map(OPENERS_JSON.map((o) => [o.id, o.instruction]));
 
-const SALON_TOKENS = ["salon", "barber", "beauty", "spa", "hair"];
-const RESTAURANT_TOKENS = ["restaurant", "cafe", "bar", "pizza", "bakery", "meal"];
-
 /** Returns DRAFT_COUNT random angles from the pool that matches primaryType. */
 export function anglesForPrimaryType(primaryType: string | undefined): Angle[] {
-  const type = primaryType?.toLowerCase() ?? "";
+  const kind = businessKind(primaryType);
   let pool: Angle[];
-  if (SALON_TOKENS.some((token) => hasToken(type, token))) {
+  if (kind === "salon") {
     pool = SALON_POOL as Angle[];
-  } else if (RESTAURANT_TOKENS.some((token) => hasToken(type, token))) {
+  } else if (kind === "restaurant") {
     pool = RESTAURANT_POOL as Angle[];
   } else {
     pool = GENERIC_POOL as Angle[];
@@ -185,7 +183,3 @@ function pickRandom<T>(pool: T[], n: number): T[] {
   return arr.slice(0, n);
 }
 
-/** Whole-token match so "spa" does not hit "space" and "bar" does not hit "barber". */
-function hasToken(primaryType: string, keyword: string): boolean {
-  return new RegExp(`(^|_)${keyword}($|_)`).test(primaryType);
-}
