@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "next dev",
-    "build": "prisma migrate deploy && prisma generate && next build",
+    "migrate": "if [ -n \"$TURSO_DATABASE_URL\" ]; then npx tsx scripts/migrate-turso.ts; else prisma migrate deploy; fi",
+    "build": "npm run migrate && prisma generate && next build",
     "start": "next start",
     "lint": "eslint",
     "test": "vitest run"
@@ -39,6 +40,7 @@
     "eslint-config-next": "16.3.5",
     "jsdom": "^29.1.1",
     "prisma": "^5.22.0",
+    "tsx": "^4.23.15",
     "typescript": "^5",
     "vitest": "^5.0.1"
   }
