@@ -22,10 +22,11 @@ const DENYLISTED_ADVERBS = new Set([
  * leaves surrounding words orphaned and ungrammatical:
  *   "I highly recommend the shawarma." → phrase delete → "I the shawarma."
  *
- * Taken verbatim from the system prompt in lib/prompt-builder.ts so the
- * post-pass enforces what the model was already told.
+ * Mirrors the system prompt in lib/prompt-builder.ts so the post-pass
+ * enforces what the model was already told.
  */
 const BANNED_CLOSERS = [
+  // Original set
   "highly recommend",
   "definitely recommend",
   "hidden gem",
@@ -37,6 +38,18 @@ const BANNED_CLOSERS = [
   "worth noting",
   "five stars",
   "10/10",
+  // Expanded — gratitude/abstract-closer phrases the model still produces
+  "by the way",
+  "worth trying",
+  "this area",
+  "if you're in the area",
+  "it's rare to find",
+  "attention to detail",
+  "welcoming atmosphere",
+  "made all the difference",
+  "leave an impression",
+  "leaves an impression",
+  "feel confident",
 ] as const;
 
 // ─── Passes ───────────────────────────────────────────────────────────────────
@@ -59,15 +72,29 @@ function normalisePunctuation(text: string): string {
 }
 
 /**
+ * Splits text into sentences by cutting on whitespace that follows a period.
+ *
+ * Uses a string regex rather than compromise's `.sentences().out("array")` to
+ * preserve original casing — compromise's `.out()` can recapitalize the first
+ * word of each sentence, which would undo texture slips like a lowercase start
+ * introduced by `applyTexture` before this pass (when called out of order) or
+ * a lowercase opener the model itself wrote.
+ */
+function splitOnPeriods(text: string): string[] {
+  return text.split(/(?<=\.)\s+/).filter((s) => s.trim().length > 0);
+}
+
+/**
  * Pass 2 — drop sentences that contain a banned closer phrase.
  * Only drops when at least one other sentence would remain so the result is
  * never empty. A single-sentence review that happens to be a closer is left
  * intact — deleting it would leave nothing to show the customer.
+ *
+ * Splitting is done on the original string (not via compromise's normalizer)
+ * so that texture-introduced lowercase starts survive unchanged.
  */
 function dropCloserSentences(text: string): string {
-  const sentences = (nlp(text).sentences().out("array") as string[]).filter(
-    (s) => s.trim().length > 0,
-  );
+  const sentences = splitOnPeriods(text);
   if (sentences.length <= 1) return text;
 
   const kept = sentences.filter(
@@ -86,12 +113,18 @@ function dropCloserSentences(text: string): string {
  * Possessives like "Joe's Pizza" are unaffected because compromise
  * distinguishes them from verb contractions.
  *
+ * Uses `splitOnPeriods` (not compromise's sentence splitter) so texture-slip
+ * lowercase starts are not recapitalized by compromise's normalizer.
+ *
  * Runs after closer-sentence drop so "will be back" is still in its expanded
  * form and can be matched above.
  */
 function contractSentences(text: string): string {
-  return (nlp(text).sentences().out("array") as string[])
-    .map((s: string) => nlp(s).contract().text())
+  // Split on the original string so casing is preserved; then contract each
+  // sentence individually. nlp(s).contract().text() only changes verb forms
+  // ("I am" → "I'm") and does not alter the first letter of the sentence.
+  return splitOnPeriods(text)
+    .map((s) => nlp(s).contract().text())
     .join(" ")
     .trim();
 }

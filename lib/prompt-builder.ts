@@ -69,10 +69,14 @@ function systemMessage(input: BuildPromptInput, starIntent: number): string {
     "",
     "Rules:",
     "- Stay positive. Do not criticise price, value, or anything else. No complaints.",
-    "- Do not sell the place. Banned closers: will be back, highly recommend, if you're in the area, must try, hidden gem, 10/10, exceeded expectations, from start to finish, overall experience.",
+    "- Do not sell the place. Banned closers: will be back, highly recommend, if you're in the area, must try, hidden gem, 10/10, exceeded expectations, from start to finish, overall experience, by the way, worth trying, this area, it's rare to find, attention to detail, welcoming atmosphere, made all the difference, leave an impression, feel confident.",
     "- No exclamation marks.",
-    "- No filler words: absolutely, amazing, fantastic, delightful, impeccable, seamless, mouth-watering, culinary, nestled, crafted, elevated, I highly recommend, definitely recommend, five stars.",
+    "- No filler words: absolutely, amazing, fantastic, delightful, impeccable, seamless, mouth-watering, culinary, nestled, crafted, elevated, I highly recommend, definitely recommend, five stars, flavorful, vibrant, nicely, complemented, remained, throughout.",
     "- No stacked adjective pairs. Use one adjective per thing — not tender and juicy, soft and perfect, quick and efficient, fresh and flavorful, or friendly and professional. Pick the single word that fits best.",
+    "- No gratitude frames: I appreciated, I noticed, found the staff to be, thoughtful touch.",
+    "- No contrast templates: X yet Y or X without any Y — not professional yet welcoming, not light without any heaviness.",
+    "- Write about at most two concrete things from the visit. Do not list items one per sentence.",
+    "- Do not start two consecutive sentences with The.",
     "- No em-dashes. No it's worth noting.",
     "- No hashtags.",
     "- First person.",
@@ -156,18 +160,18 @@ function userMessage(input: BuildPromptInput): string {
     lines.push("", "Shop notes:", notes);
   }
 
-  // Include example Google reviews only when there are no shop notes.
-  if (!notes) {
-    const reviews = snapshot.reviews?.filter((r) => r.text.trim() !== "") ?? [];
-    if (reviews.length > 0) {
-      lines.push(
-        "",
-        "Existing Google reviews (examples only — do not copy):",
-        ...reviews.map(
-          (r) => `- ${r.rating} stars, ${r.relativeTime}: ${r.text}`,
-        ),
-      );
-    }
+  // Always include up to 2 existing Google reviews as style examples — even
+  // when shop notes are present. Without them, shops with notes never see a
+  // human-written sample and the model imitates the notes instead.
+  const reviews = snapshot.reviews?.filter((r) => r.text.trim() !== "") ?? [];
+  if (reviews.length > 0) {
+    lines.push(
+      "",
+      "Existing Google reviews (examples only — do not copy):",
+      ...reviews.slice(0, 2).map(
+        (r) => `- ${r.rating} stars, ${r.relativeTime}: ${r.text}`,
+      ),
+    );
   }
 
   return lines.join("\n");

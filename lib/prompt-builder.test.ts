@@ -174,16 +174,78 @@ describe("buildPrompt", () => {
     expect(text).toContain("mention the garlic knots");
   });
 
-  it("omits example Google reviews when shop notes are present", () => {
+  it("includes example Google reviews even when shop notes are present", () => {
+    // Without few-shots, shops with notes see no human example and the model imitates the notes.
     const text = promptText(buildPrompt({ ...BASE_INPUT, customInstructions: "great knots" }));
-    expect(text).not.toContain(EXAMPLES_HEADING);
-    expect(text).not.toContain("Best pepperoni in the neighborhood.");
+    expect(text).toContain(EXAMPLES_HEADING);
+    expect(text).toContain("Best pepperoni in the neighborhood.");
   });
 
   it("includes example Google reviews when no shop notes are present", () => {
     const text = promptText(buildPrompt(BASE_INPUT));
     expect(text).toContain(EXAMPLES_HEADING);
     expect(text).toContain("Best pepperoni in the neighborhood.");
+  });
+
+  it("caps example reviews at 2 even when the snapshot has more", () => {
+    const manyReviews: PlaceSnapshot = {
+      ...JOES,
+      reviews: [
+        { rating: 5, text: "First review.", relativeTime: "1 month ago" },
+        { rating: 4, text: "Second review.", relativeTime: "2 months ago" },
+        { rating: 5, text: "Third review.", relativeTime: "3 months ago" },
+      ],
+    };
+    const text = promptText(buildPrompt({ ...BASE_INPUT, snapshot: manyReviews }));
+    expect(text).toContain("First review.");
+    expect(text).toContain("Second review.");
+    expect(text).not.toContain("Third review.");
+  });
+
+  it("bans gratitude frames from the system prompt", () => {
+    const sys = buildPrompt(BASE_INPUT)[0].content;
+    expect(sys).toContain("I appreciated");
+    expect(sys).toContain("I noticed");
+    expect(sys).toContain("found the staff to be");
+    expect(sys).toContain("thoughtful touch");
+  });
+
+  it("bans contrast templates from the system prompt", () => {
+    const sys = buildPrompt(BASE_INPUT)[0].content;
+    expect(sys).toMatch(/X yet Y/);
+    expect(sys).toMatch(/X without any Y/);
+    expect(sys).toContain("professional yet welcoming");
+    expect(sys).toContain("light without any heaviness");
+  });
+
+  it("bans the at-most-two-things rule from the system prompt", () => {
+    const sys = buildPrompt(BASE_INPUT)[0].content;
+    expect(sys).toMatch(/at most two concrete things/i);
+  });
+
+  it("bans consecutive The-sentence starts from the system prompt", () => {
+    const sys = buildPrompt(BASE_INPUT)[0].content;
+    expect(sys).toMatch(/two consecutive sentences with The/i);
+  });
+
+  it("bans new closer phrases from the system prompt", () => {
+    const sys = buildPrompt(BASE_INPUT)[0].content;
+    expect(sys).toContain("by the way");
+    expect(sys).toContain("it's rare to find");
+    expect(sys).toContain("leave an impression");
+    expect(sys).toContain("made all the difference");
+    expect(sys).toContain("welcoming atmosphere");
+    expect(sys).toContain("feel confident");
+  });
+
+  it("bans new filler words from the system prompt", () => {
+    const sys = buildPrompt(BASE_INPUT)[0].content;
+    expect(sys).toContain("flavorful");
+    expect(sys).toContain("vibrant");
+    expect(sys).toContain("nicely");
+    expect(sys).toContain("complemented");
+    expect(sys).toContain("remained");
+    expect(sys).toContain("throughout");
   });
 
   it("still produces a prompt when snapshot reviews are missing", () => {

@@ -72,7 +72,7 @@
   { "label": "whether it matched what you saw on someone else's table", "pick": "the main you ordered after seeing it at another table" },
   { "label": "how the portion changed compared to a previous visit", "pick": "the main; note size changes if any" },
   { "label": "what the leftovers were like the next morning", "pick": "a main that reheats; skip drinks and sides" },
-  { "label": "how the extras complemented the main, if applicable", "pick": "an extra alongside the main, if there was one; keep the main primary" },
+  { "label": "how the extras held up alongside the main, if applicable", "pick": "an extra alongside the main, if there was one; keep the main primary" },
   { "label": "how the meal felt at that time of day", "pick": "the main you ate; note how time of day affected it" },
   { "label": "what you decided to order", "pick": "the main you settled on; not a side or a drink" },
   { "label": "whether the plate had everything it should", "pick": "the main and what came with it; note anything missing" },
