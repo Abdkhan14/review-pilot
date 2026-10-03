@@ -135,12 +135,13 @@ describe("buildPrompt", () => {
     expect(sys).toContain("must try");
   });
 
-  it("forbids stacked adjective pairs in the system prompt", () => {
+  it("forbids stacked quality pairs (adjective and noun) in the system prompt", () => {
     const sys = buildPrompt(BASE_INPUT)[0].content;
-    expect(sys).toMatch(/stacked adjective pairs/i);
+    expect(sys).toMatch(/stacked quality pairs/i);
     expect(sys).toContain("tender and juicy");
-    expect(sys).toContain("soft and perfect");
-    expect(sys).toContain("quick and efficient");
+    expect(sys).toContain("shape and sharpness");
+    expect(sys).toContain("look and feel");
+    expect(sys).toContain("form and function");
   });
 
   it("prompt does not mention the bill", () => {
@@ -202,6 +203,32 @@ describe("buildPrompt", () => {
     expect(text).not.toContain("Third review.");
   });
 
+  it("bans new closer phrases from the system prompt", () => {
+    const sys = buildPrompt(BASE_INPUT)[0].content;
+    expect(sys).toContain("by the way");
+    expect(sys).toContain("it's rare to find");
+    expect(sys).toContain("leave an impression");
+    expect(sys).toContain("made all the difference");
+    expect(sys).toContain("welcoming atmosphere");
+    expect(sys).toContain("feel confident");
+    expect(sys).toContain("I noticed");
+    expect(sys).toContain("overall");
+    expect(sys).toContain("one thing that caught my eye");
+  });
+
+  it("bans new filler words from the system prompt", () => {
+    const sys = buildPrompt(BASE_INPUT)[0].content;
+    expect(sys).toContain("flavorful");
+    expect(sys).toContain("vibrant");
+    expect(sys).toContain("nicely");
+    expect(sys).toContain("complemented");
+    expect(sys).toContain("remained");
+    expect(sys).toContain("throughout");
+    expect(sys).toContain("good craftsmanship");
+    expect(sys).toContain("paired with");
+    expect(sys).toContain("dining experience");
+  });
+
   it("bans gratitude frames from the system prompt", () => {
     const sys = buildPrompt(BASE_INPUT)[0].content;
     expect(sys).toContain("I appreciated");
@@ -228,24 +255,10 @@ describe("buildPrompt", () => {
     expect(sys).toMatch(/two consecutive sentences with The/i);
   });
 
-  it("bans new closer phrases from the system prompt", () => {
+  it("bans inline colon descriptions from the system prompt", () => {
     const sys = buildPrompt(BASE_INPUT)[0].content;
-    expect(sys).toContain("by the way");
-    expect(sys).toContain("it's rare to find");
-    expect(sys).toContain("leave an impression");
-    expect(sys).toContain("made all the difference");
-    expect(sys).toContain("welcoming atmosphere");
-    expect(sys).toContain("feel confident");
-  });
-
-  it("bans new filler words from the system prompt", () => {
-    const sys = buildPrompt(BASE_INPUT)[0].content;
-    expect(sys).toContain("flavorful");
-    expect(sys).toContain("vibrant");
-    expect(sys).toContain("nicely");
-    expect(sys).toContain("complemented");
-    expect(sys).toContain("remained");
-    expect(sys).toContain("throughout");
+    expect(sys).toMatch(/colons inline/i);
+    expect(sys).toContain("poutine");
   });
 
   it("still produces a prompt when snapshot reviews are missing", () => {

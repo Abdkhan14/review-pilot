@@ -276,6 +276,134 @@ describe("polishDraft", () => {
     });
   });
 
+  // ─── Colon item description stripping ───────────────────────────────────────
+
+  describe("inline colon descriptions", () => {
+    it("strips the description after a mid-sentence colon, keeping the main clause", () => {
+      const result = polishDraft(
+        "The classic poutine: fries with gravy and cheese curds did not disappoint.",
+      );
+      expect(result).toContain("poutine");
+      expect(result).not.toContain("fries with gravy");
+      expect(result).toContain("disappoint");
+    });
+
+    it("leaves text with no colon unchanged", () => {
+      const text = "The tahini added a good note to each bite.";
+      expect(polishDraft(text)).toBe(text);
+    });
+
+    it("does not strip a colon followed by an uppercase word (not mid-sentence)", () => {
+      // Uppercase after colon is not our pattern — leave untouched.
+      const text = "Shop notes: Fresh ingredients used daily.";
+      expect(polishDraft(text)).toContain("Fresh ingredients");
+    });
+
+    it("leaves the text unchanged when there is no finite verb after the colon", () => {
+      // Description with no finite verb — no safe split point, leave it.
+      const text = "Tried the tahini: smooth and creamy.";
+      expect(polishDraft(text)).toBeTruthy();
+    });
+  });
+
+  // ─── Extended BANNED_CLOSERS ─────────────────────────────────────────────────
+
+  describe("extended banned closers", () => {
+    it("drops 'by the way' sentence", () => {
+      const result = polishDraft("The pita was good. By the way, this place is worth a visit.");
+      expect(result).toContain("pita");
+      expect(result).not.toContain("By the way");
+    });
+
+    it("drops 'it's rare to find' sentence", () => {
+      const result = polishDraft("Good portion. It's rare to find quality like this.");
+      expect(result).toContain("portion");
+      expect(result).not.toContain("rare to find");
+    });
+
+    it("drops 'attention to detail' sentence", () => {
+      const result = polishDraft("The cut looked clean. That kind of attention to detail matters.");
+      expect(result).toContain("cut");
+      expect(result).not.toContain("attention to detail");
+    });
+
+    it("drops 'welcoming atmosphere' sentence", () => {
+      const result = polishDraft("Service was fast. The welcoming atmosphere made it easy to relax.");
+      expect(result).toContain("fast");
+      expect(result).not.toContain("welcoming atmosphere");
+    });
+
+    it("drops 'made all the difference' sentence", () => {
+      const result = polishDraft("The filling was solid. That little touch made all the difference.");
+      expect(result).toContain("filling");
+      expect(result).not.toContain("made all the difference");
+    });
+
+    it("drops 'leave an impression' sentence", () => {
+      const result = polishDraft("Good food. Small gestures like that leave an impression.");
+      expect(result).toContain("food");
+      expect(result).not.toContain("leave an impression");
+    });
+
+    it("drops 'leaves an impression' sentence", () => {
+      const result = polishDraft("Good food. That kind of thing leaves an impression.");
+      expect(result).toContain("food");
+      expect(result).not.toContain("leaves an impression");
+    });
+
+    it("drops 'feel confident' sentence", () => {
+      const result = polishDraft("The consultation went well. It was easy to feel confident throughout.");
+      expect(result).toContain("consultation");
+      expect(result).not.toContain("feel confident");
+    });
+
+    it("drops 'I noticed' sentence", () => {
+      const result = polishDraft("Good portion. I noticed the sauce was well seasoned.");
+      expect(result).toContain("portion");
+      expect(result).not.toContain("I noticed");
+    });
+
+    it("drops 'Overall' sentence", () => {
+      const result = polishDraft("The pita was solid. Overall, the experience was good.");
+      expect(result).toContain("pita");
+      expect(result).not.toContain("Overall");
+    });
+
+    it("leaves a single-sentence review containing a new closer unchanged", () => {
+      const text = "It's rare to find a place this good.";
+      expect(polishDraft(text)).toBeTruthy();
+    });
+
+    it("leaves a single-sentence review starting with Overall unchanged", () => {
+      const text = "Overall the cut was solid.";
+      expect(polishDraft(text)).toBeTruthy();
+    });
+
+    it("leaves a single-sentence review with I noticed unchanged", () => {
+      const text = "I noticed the cut held up well.";
+      expect(polishDraft(text)).toBeTruthy();
+    });
+  });
+
+  // ─── Lowercase-start preservation ────────────────────────────────────────────
+
+  describe("lowercase start preservation", () => {
+    it("preserves a lowercase sentence start (texture slip)", () => {
+      // 'leaving' starts with lowercase intentionally — must not be recapitalized.
+      const text = "leaving the shop, I got the sandwich.";
+      const result = polishDraft(text);
+      expect(result.startsWith("leaving")).toBe(true);
+    });
+
+    it("preserves lowercase start when a closer sentence is dropped", () => {
+      const result = polishDraft(
+        "leaving the shop, I got the sandwich. Small gestures like that leave an impression.",
+      );
+      expect(result.startsWith("leaving")).toBe(true);
+      expect(result).not.toContain("leave an impression");
+    });
+  });
+
   // ─── Safety ──────────────────────────────────────────────────────────────────
 
   describe("safety", () => {

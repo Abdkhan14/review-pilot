@@ -153,6 +153,56 @@ describe("stripAdjectives", () => {
     });
   });
 
+  // ─── Quality noun pair collapsing ───────────────────────────────────────────
+
+  describe("quality noun pair collapsing", () => {
+    it("collapses 'shape and sharpness' to 'sharpness'", () => {
+      const result = stripAdjectives("The cut maintained its shape and sharpness over several weeks.");
+      expect(result).not.toContain("shape and");
+      expect(result).toContain("sharpness");
+    });
+
+    it("collapses 'look and feel' to 'feel'", () => {
+      const result = stripAdjectives("The cut had a clean look and feel.");
+      expect(result).not.toContain("look and");
+      expect(result).toContain("feel");
+    });
+
+    it("collapses 'form and function' to 'function'", () => {
+      const result = stripAdjectives("The design balanced form and function.");
+      expect(result).not.toContain("form and");
+      expect(result).toContain("function");
+    });
+
+    it("collapses 'fit and finish' to 'finish'", () => {
+      const result = stripAdjectives("Impressed by the fit and finish of the cut.");
+      expect(result).not.toContain("fit and");
+      expect(result).toContain("finish");
+    });
+
+    it("preserves sentence-start capitalisation after collapsing", () => {
+      const result = stripAdjectives("Shape and sharpness held up well.");
+      expect(result.startsWith("Sharpness")).toBe(true);
+    });
+
+    it("does not collapse when the kept word is guarded", () => {
+      // "Sharpness" is part of the shop name — the pair must survive intact.
+      const result = stripAdjectives("The cut had great shape and sharpness.", ["Sharpness Salon"]);
+      expect(result).toContain("shape and sharpness");
+    });
+
+    it("does not leave a double space after collapsing", () => {
+      const result = stripAdjectives("Good look and feel overall.");
+      expect(result).not.toMatch(/  /);
+    });
+
+    it("handles a quality pair at the end of the sentence", () => {
+      const result = stripAdjectives("The hair kept its color and shine.");
+      expect(result).not.toContain("color and");
+      expect(result).toContain("shine");
+    });
+  });
+
   // ─── Combined passes ─────────────────────────────────────────────────────────
 
   describe("combined passes", () => {

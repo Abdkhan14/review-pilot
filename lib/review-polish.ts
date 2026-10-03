@@ -1,6 +1,14 @@
 import nlp from "compromise";
 import { stripAdjectives } from "./review-adjectives";
 
+// ─── Types ────────────────────────────────────────────────────────────────────
+
+/** Shape of a term object returned by compromise's `.json()`. */
+interface JsonTerm {
+  text: string;
+  tags: string[];
+}
+
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 /**
@@ -38,7 +46,7 @@ const BANNED_CLOSERS = [
   "worth noting",
   "five stars",
   "10/10",
-  // Expanded — gratitude/abstract-closer phrases the model still produces
+  // Gratitude / abstract-closer phrases
   "by the way",
   "worth trying",
   "this area",
@@ -50,6 +58,9 @@ const BANNED_CLOSERS = [
   "leave an impression",
   "leaves an impression",
   "feel confident",
+  // Observer frames — model uses these despite the prompt ban
+  "I noticed",
+  "overall",
 ] as const;
 
 // ─── Passes ───────────────────────────────────────────────────────────────────
@@ -69,6 +80,39 @@ function normalisePunctuation(text: string): string {
     .replace(/,\s*\./g, ".")
     .replace(/\.{2,}/g, ".")
     .trim();
+}
+
+/**
+ * Pass 1.5 — strip mid-sentence colon item descriptions.
+ *
+ * The model sometimes uses a colon to summarise what a menu item is, which
+ * reads like a menu card, not a personal experience:
+ *   "the classic poutine: fries with gravy and cheese curds did not disappoint"
+ *   → "the classic poutine did not disappoint"
+ *
+ * Detection: `: ` followed by a lowercase word (mid-sentence only — colons
+ * starting a new capitalised clause are left untouched).
+ * Mechanism: parse what follows the colon with compromise, find the first
+ * finite verb (PastTense or PresentTense, not Gerund/Participle), remove
+ * everything between the colon and that verb. If no finite verb is found the
+ * text is left unchanged (safe fallback).
+ */
+function removeInlineColonDescriptions(text: string): string {
+  return text.replace(/:\s+([a-z][^.!?]*)/g, (fullMatch, afterColon) => {
+    const terms = (nlp(afterColon).json()[0]?.terms ?? []) as JsonTerm[];
+    const verbIdx = terms.findIndex(
+      (t) =>
+        (t.tags.includes("PastTense") || t.tags.includes("PresentTense")) &&
+        !t.tags.includes("Gerund") &&
+        !t.tags.includes("Participle"),
+    );
+    if (verbIdx <= 0) return fullMatch; // no safe split — leave unchanged
+    const rest = terms
+      .slice(verbIdx)
+      .map((t) => t.text)
+      .join(" ");
+    return " " + rest;
+  });
 }
 
 /**
@@ -120,9 +164,6 @@ function dropCloserSentences(text: string): string {
  * form and can be matched above.
  */
 function contractSentences(text: string): string {
-  // Split on the original string so casing is preserved; then contract each
-  // sentence individually. nlp(s).contract().text() only changes verb forms
-  // ("I am" → "I'm") and does not alter the first letter of the sentence.
   return splitOnPeriods(text)
     .map((s) => nlp(s).contract().text())
     .join(" ")
@@ -174,8 +215,9 @@ function removeDenylistedAdverbs(text: string): string {
 /**
  * Applies all AI-tell polish passes to a draft review text, in order:
  *
- * 1. Strip intensifier adverbs and stacked adjective pairs (`stripAdjectives`).
+ * 1. Strip intensifier adverbs and stacked adjective/noun pairs (`stripAdjectives`).
  * 2. Normalise exclamation marks to periods and em dashes to commas.
+ * 2.5. Strip mid-sentence colon item descriptions (`poutine: fries with…` → `poutine`).
  * 3. Drop full sentences that contain a banned closer phrase (when at least
  *    one other sentence would remain).
  * 4. Contract expanded verb forms per sentence (`I am` → `I'm`).
@@ -194,6 +236,7 @@ export function polishDraft(text: string, protected_: string[] = []): string {
 
   let out = stripAdjectives(text, protected_);
   out = safe(normalisePunctuation(out), out);
+  out = safe(removeInlineColonDescriptions(out), out);
   out = safe(dropCloserSentences(out), out);
   out = safe(contractSentences(out), out);
   out = safe(removeHashtags(out), out);
