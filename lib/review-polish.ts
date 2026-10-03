@@ -1,10 +1,6 @@
 import nlp from "compromise";
 import { stripAdjectives } from "./review-adjectives";
 
-// ─── Types ────────────────────────────────────────────────────────────────────
-
-type NlpView = ReturnType<typeof nlp>;
-
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 /**
@@ -103,10 +99,14 @@ function contractSentences(text: string): string {
 /**
  * Pass 4 — remove hashtags.
  * "#bestpizza the crust was good" → "the crust was good"
+ *
+ * Uses `doc.delete(tags)` — passing the hashtag View as a `Matchable` argument
+ * satisfies the typed signature while removing the same terms at runtime.
  */
 function removeHashtags(text: string): string {
-  const doc = nlp(text) as NlpView;
-  doc.hashTags().delete();
+  const doc = nlp(text);
+  const tags = doc.hashTags();
+  tags.delete(tags);
   return doc.text().trim();
 }
 
@@ -114,14 +114,21 @@ function removeHashtags(text: string): string {
  * Pass 5 — delete denylisted -ly adverbs.
  * Only the fixed list above is removed. Generic timing/sensory adverbs
  * (`quickly`, `slowly`, `warmly`) that voice recipes may generate are kept.
+ *
+ * Avoids `adverbs().forEach` because the callback only receives a base `View`.
+ * Instead, adverbs are extracted as strings via `.out("array")` and each
+ * denylisted word is deleted from the document with `doc.delete(pattern)`.
  */
 function removeDenylistedAdverbs(text: string): string {
   const doc = nlp(text);
-  doc.adverbs().forEach((a: NlpView) => {
-    if (DENYLISTED_ADVERBS.has(a.text().toLowerCase())) {
-      a.delete();
+  const adverbs = doc.adverbs().out("array") as string[];
+
+  for (const word of adverbs) {
+    if (DENYLISTED_ADVERBS.has(word.toLowerCase())) {
+      doc.delete(`(${word} && #Adverb)`);
     }
-  });
+  }
+
   return doc
     .text()
     .replace(/\s{2,}/g, " ")

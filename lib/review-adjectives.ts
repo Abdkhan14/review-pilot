@@ -11,8 +11,11 @@ interface JsonTerm {
   tags: string[];
 }
 
-/** Alias for the type returned by `nlp()` and all view operations. */
-type NlpView = ReturnType<typeof nlp>;
+/**
+ * The document type returned by `nlp()`. Using ReturnType avoids importing
+ * the internal `Three` interface directly from the package.
+ */
+type NlpDoc = ReturnType<typeof nlp>;
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -82,9 +85,13 @@ function removeIntensifiers(text: string, guard: Set<string>): string {
 /**
  * Pass 2a — `adj and adj` pairs.
  * "tender and juicy" → "juicy"
+ *
+ * The forEach callback is intentionally unannotated so TypeScript infers the
+ * base `View` type expected by compromise's `.forEach` signature — annotating
+ * it with the full document type (NlpDoc) causes a TS2345 mismatch.
  */
-function collapseAndPairs(doc: NlpView, guard: Set<string>): void {
-  doc.match("#Adjective and #Adjective").forEach((m: NlpView) => {
+function collapseAndPairs(doc: NlpDoc, guard: Set<string>): void {
+  doc.match("#Adjective and #Adjective").forEach((m) => {
     const second = lastWord(m.text());
     if (!isGuarded(second, guard)) {
       m.replaceWith(second);
@@ -103,9 +110,12 @@ function collapseAndPairs(doc: NlpView, guard: Set<string>): void {
  * (e.g. "warm, crusty, golden" → "warm" and "crusty" are both collected,
  * leaving "golden").
  *
+ * Deletion uses `doc.delete(pattern)` — the typed form of removing terms
+ * matching a string pattern from the document.
+ *
  * "rich, flavorful sauce" → "flavorful sauce"
  */
-function collapseCommaPairs(doc: NlpView, guard: Set<string>): void {
+function collapseCommaPairs(doc: NlpDoc, guard: Set<string>): void {
   const toDelete: string[] = [];
 
   for (const sentence of doc.json() as { terms: JsonTerm[] }[]) {
@@ -132,30 +142,38 @@ function collapseCommaPairs(doc: NlpView, guard: Set<string>): void {
   for (const word of toDelete) {
     // The `&&` syntax requires both the literal word AND the Adjective tag,
     // preventing accidental deletion of the same word used as a different POS.
-    doc.match(`(${word} && #Adjective)`).delete();
+    // doc.delete(pattern) is the typed equivalent of the selection's no-arg .delete().
+    doc.delete(`(${word} && #Adjective)`);
   }
 }
 
 /**
  * Pass 3 — noun-phrase cap.
- * For each noun phrase whose adjectives have no commas between them (those are
- * handled in pass 2b), keep only the last adjective.
+ * For each noun phrase that has 2+ consecutive (non-comma-separated)
+ * adjectives, keep only the last one.
  * "warm crusty bread" → "crusty bread"
+ *
+ * Avoids `nouns().forEach` because the callback only receives a base `View`,
+ * which does not expose `.adjectives()`. Instead, noun phrases are extracted
+ * as strings via `.out("array")` and re-parsed in isolation to read their
+ * adjectives.
  */
-function capNounAdjectives(doc: NlpView, guard: Set<string>): void {
-  doc.nouns().forEach((noun: NlpView) => {
-    const adjArr = noun.adjectives().out("array") as string[];
-    if (adjArr.length <= 1) return;
+function capNounAdjectives(doc: NlpDoc, guard: Set<string>): void {
+  const nounPhrases = doc.nouns().out("array") as string[];
+
+  for (const phrase of nounPhrases) {
+    const adjArr = nlp(phrase).adjectives().out("array") as string[];
+    if (adjArr.length <= 1) continue;
 
     const toDrop = adjArr.slice(0, -1); // all but the rightmost adjective
     // If any adjective being dropped is a protected word, leave the whole
     // phrase intact rather than risk mangling the shop name or catalog item.
-    if (toDrop.some((w: string) => isGuarded(w, guard))) return;
+    if (toDrop.some((w) => isGuarded(w, guard))) continue;
 
     for (const word of toDrop) {
-      doc.match(`(${word} && #Adjective)`).delete();
+      doc.delete(`(${word} && #Adjective)`);
     }
-  });
+  }
 }
 
 // ─── Public API ───────────────────────────────────────────────────────────────
