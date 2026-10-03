@@ -9,6 +9,7 @@ import { parseCatalog, sampleItems, DRAFT_COUNT } from "@/lib/catalog-items";
 import { todayCount, isDailyCapped, nextUtcMidnightMs } from "@/lib/handoff";
 import { sampleRecipeTrio } from "@/lib/review-recipe";
 import { applyTexture, applyTypo } from "@/lib/review-texture";
+import { polishDraft } from "@/lib/review-polish";
 import type { PlaceSnapshot } from "@/lib/place-snapshot";
 
 const DRAFT_IDS = ["a", "b", "c"] as const;
@@ -99,15 +100,17 @@ export async function POST(
   try {
     const drafts = await generateDrafts(messagesList);
 
-    // Apply light texture post-pass to at most one draft (enforced by sampleRecipeTrio).
-    // Then apply a rare one-word typo swap (also at most one draft, never the
-    // same draft as the texture slip).
+    // For every draft: apply all AI-tell polish passes (polishDraft) which
+    // strips stacked adjectives, intensifiers, banned closers, hashtags, and
+    // denylisted adverbs, and contracts expanded verb forms.
+    // Then apply a light grammar slip to at most one draft (applyTexture) and
+    // a rare one-word typo to a different draft (applyTypo).
     const reviews = drafts.map((draft, i) => {
       const recipe = recipes[i];
       const assignedItem = itemNames[i];
       const protectedStrings = [snapshot.name, ...(assignedItem ? [assignedItem] : [])];
 
-      let text = draft.text;
+      let text = polishDraft(draft.text, protectedStrings);
       if (recipe.texture !== "clean") text = applyTexture(text, recipe.texture);
       if (recipe.typo !== "clean") text = applyTypo(text, recipe.typo, protectedStrings);
       return text !== draft.text ? { ...draft, text } : draft;
