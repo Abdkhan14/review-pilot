@@ -38,6 +38,36 @@ const INTENSIFIER_RE = new RegExp(
   "gi",
 );
 
+/**
+ * Quality noun pairs that the model uses as if they were stacked adjectives.
+ * These slip past the `#Adjective and #Adjective` NLP pass because compromise
+ * tags both words as nouns. Each entry keeps the second (more specific) word
+ * and drops `firstword and `.
+ *
+ * Examples: "maintained its shape and sharpness" → "maintained its sharpness"
+ *           "the look and feel" → "the feel"
+ */
+const QUALITY_NOUN_PAIRS: { pattern: RegExp; keep: string }[] = [
+  { pattern: /\bshape and sharpness\b/gi, keep: "sharpness" },
+  { pattern: /\blook and feel\b/gi, keep: "feel" },
+  { pattern: /\bform and function\b/gi, keep: "function" },
+  { pattern: /\bfit and finish\b/gi, keep: "finish" },
+  { pattern: /\bcare and precision\b/gi, keep: "precision" },
+  { pattern: /\bskill and precision\b/gi, keep: "precision" },
+  { pattern: /\bdepth and detail\b/gi, keep: "detail" },
+  { pattern: /\bstyle and substance\b/gi, keep: "substance" },
+  { pattern: /\btouch and texture\b/gi, keep: "texture" },
+  { pattern: /\bstructure and volume\b/gi, keep: "volume" },
+  { pattern: /\blength and texture\b/gi, keep: "texture" },
+  { pattern: /\bcolor and shine\b/gi, keep: "shine" },
+  { pattern: /\bhold and texture\b/gi, keep: "texture" },
+  { pattern: /\bwear and durability\b/gi, keep: "durability" },
+  { pattern: /\bstrength and shine\b/gi, keep: "shine" },
+  { pattern: /\bshine and softness\b/gi, keep: "softness" },
+  { pattern: /\bvolume and shine\b/gi, keep: "shine" },
+  { pattern: /\bbody and shine\b/gi, keep: "shine" },
+];
+
 // ─── Private helpers ──────────────────────────────────────────────────────────
 
 /**
@@ -66,6 +96,28 @@ function lastWord(matchText: string): string {
 }
 
 // ─── Passes ───────────────────────────────────────────────────────────────────
+
+/**
+ * Pass 0 — quality noun pairs.
+ * Pure regex; runs before the NLP passes so compromise never needs to tag
+ * these. Preserves sentence-start capitalisation.
+ * "maintained its shape and sharpness" → "maintained its sharpness"
+ */
+function collapseQualityNounPairs(text: string, guard: Set<string>): string {
+  let result = text;
+  for (const { pattern, keep } of QUALITY_NOUN_PAIRS) {
+    result = result.replace(pattern, (match) => {
+      if (isGuarded(keep, guard)) return match;
+      // Preserve a capital if the match began a sentence.
+      const startsUpper =
+        match[0] !== undefined &&
+        match[0] === match[0].toUpperCase() &&
+        match[0] !== match[0].toLowerCase();
+      return startsUpper ? keep[0].toUpperCase() + keep.slice(1) : keep;
+    });
+  }
+  return result;
+}
 
 /**
  * Pass 1 — intensifiers.
@@ -200,8 +252,11 @@ export function stripAdjectives(
 ): string {
   const guard = buildGuard(protected_);
 
+  // Pass 0: quality noun pairs — pure regex, before any NLP tagging.
+  const afterNounPairs = collapseQualityNounPairs(text, guard);
+
   // Pass 1: intensifiers — pure regex, fast, zero tagging risk.
-  const cleaned = removeIntensifiers(text, guard);
+  const cleaned = removeIntensifiers(afterNounPairs, guard);
   if (!cleaned) return text;
 
   // Passes 2 & 3: POS-based — run on the post-intensifier string.
