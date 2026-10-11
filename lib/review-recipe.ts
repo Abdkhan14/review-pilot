@@ -65,7 +65,7 @@ function shuffle<T>(arr: T[], rng: Rng): void {
 
 /**
  * Samples three review recipes with these trio constraints:
- * - Three distinct length ids (shuffle of 12 options, take first three).
+ * - Three distinct length ids (shuffle of 6 options, take first three).
  * - Item policy is independent "must" | "optional" per draft (no skip).
  * - At most one "allow" prose-fact policy.
  * - At most one non-clean texture (30% chance all three are clean).

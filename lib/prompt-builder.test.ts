@@ -81,9 +81,9 @@ describe("buildPrompt", () => {
     expect(sys).toMatch(/exactly 1 sentence/i);
   });
 
-  it("encodes length=len_6 as exactly 6 sentences (the max)", () => {
-    const sys = buildPrompt({ ...BASE_INPUT, recipe: { ...BASE_RECIPE, length: "len_6" } })[0].content;
-    expect(sys).toMatch(/6 sentences/i);
+  it("encodes length=len_3 as exactly 3 sentences (the max)", () => {
+    const sys = buildPrompt({ ...BASE_INPUT, recipe: { ...BASE_RECIPE, length: "len_3" } })[0].content;
+    expect(sys).toMatch(/3 sentences/i);
     expect(sys).toMatch(/maximum/i);
   });
 
@@ -149,12 +149,12 @@ describe("buildPrompt", () => {
     expect(sys).not.toMatch(/\bthe bill\b/i);
   });
 
-  it("looks up the length instruction from lengths.json for len_4", () => {
+  it("looks up the length instruction from lengths.json for len_2", () => {
     const sys = buildPrompt({
       ...BASE_INPUT,
-      recipe: { ...BASE_RECIPE, length: "len_4" },
+      recipe: { ...BASE_RECIPE, length: "len_2" },
     })[0].content;
-    expect(sys).toMatch(/exactly 4 sentences/i);
+    expect(sys).toMatch(/exactly 2 sentences/i);
   });
 
   it("falls back gracefully for an unknown length id", () => {

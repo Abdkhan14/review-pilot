@@ -1,6 +1,6 @@
 # Examples
 
-Copy the block for the closest business type and fill in real item names.
+Copy the block for the closest business type and fill in real item names. Every item gets a short parenthetical description.
 
 ---
 
@@ -10,21 +10,21 @@ Copy the block for the closest business type and fill in real item names.
 Don't talk about wait times.
 
 # Mains
-- Chicken Shawarma Platter
-- Mixed Grill Platter
-- Lamb Kofta Wrap
-- Falafel Platter
+- Chicken Shawarma Platter (shaved chicken shawarma with rice and salad)
+- Mixed Grill Platter (assorted grilled meats with rice)
+- Lamb Kofta Wrap (spiced lamb kofta in a wrap)
+- Falafel Platter (crispy falafel with salad and sauce)
 
 # Sides
-- Hummus
-- Falafel Bites
-- Tabbouleh
-- Garlic Sauce
+- Hummus (chickpea dip)
+- Falafel Bites (small crispy falafel)
+- Tabbouleh (parsley and bulgur salad)
+- Garlic Sauce (garlic toum)
 
 # Drinks & Desserts
-- Mint Tea
-- Baklava Box
-- Ayran
+- Mint Tea (hot mint tea)
+- Baklava Box (pistachio baklava)
+- Ayran (salted yogurt drink)
 ```
 
 ---
@@ -35,20 +35,20 @@ Don't talk about wait times.
 Staff names are Ahmed and Sara — use them if mentioned.
 
 # Cuts & Styling
-- Fade
-- Skin Fade
-- Textured Crop
-- Blowout
+- Fade (short faded sides)
+- Skin Fade (fade down to the skin)
+- Textured Crop (short textured cut on top)
+- Blowout (smoothed blow-dried finish)
 
 # Color
-- Highlights
-- Balayage
-- Color Correction
+- Highlights (partial lighter pieces)
+- Balayage (hand-painted lighter color)
+- Color Correction (fixing a previous color)
 
 # Extras
-- Beard Trim & Shape
-- Hot Towel Shave
-- Eyebrow Threading
+- Beard Trim & Shape (trimmed and lined beard)
+- Hot Towel Shave (straight-razor shave with a hot towel)
+- Eyebrow Threading (threaded brow shape)
 ```
 
 ---
@@ -59,14 +59,14 @@ Staff names are Ahmed and Sara — use them if mentioned.
 Always highlight the fast turnaround.
 
 # Services
-- Full Detail
-- Interior Deep Clean
-- Exterior Wash & Wax
-- Engine Bay Clean
+- Full Detail (inside and outside detail)
+- Interior Deep Clean (deep clean of the cabin)
+- Exterior Wash & Wax (wash with a wax finish)
+- Engine Bay Clean (cleaned engine bay)
 
 # Add-ons
-- Odor Removal
-- Paint Protection Film
-- Ceramic Coating Spot Treatment
-- Headlight Restoration
+- Odor Removal (treatment for cabin smells)
+- Paint Protection Film (clear film on paint)
+- Ceramic Coating Spot Treatment (ceramic coating on one area)
+- Headlight Restoration (cleared hazy headlights)
 ```
