@@ -226,13 +226,13 @@ describe("sampleRecipeTrio", () => {
 });
 
 describe("recipe catalogs", () => {
-  it("lengths catalog has at least 12 entries", () => {
-    expect(LENGTHS_JSON.length).toBeGreaterThanOrEqual(12);
+  it("lengths catalog has at least 6 entries", () => {
+    expect(LENGTHS_JSON.length).toBeGreaterThanOrEqual(6);
   });
 
-  it("every length instruction caps at 6 sentences — no 7 or 8", () => {
+  it("every length instruction caps at 3 sentences — no 4 through 8", () => {
     for (const { instruction } of LENGTHS_JSON) {
-      expect(instruction).not.toMatch(/\b[78]\b/);
+      expect(instruction).not.toMatch(/\b[4-8]\b/);
     }
   });
 
