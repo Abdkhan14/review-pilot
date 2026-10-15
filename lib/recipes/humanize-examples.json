@@ -92,5 +92,13 @@
       "food-critic phrase: 'balanced flavor'"
     ],
     "text": "The Chicken Salad with shawarma on greens was good. The server brought extra dressing over before I asked."
+  },
+  {
+    "context": "Shop: Saj House\nItem: Chicken Saj Arabi Platter\nVoice: State what happened. Observations, not opinions.\nLength: Write exactly 1 sentence.\nStars: 5",
+    "draft": "The Chicken Saj Arabi Platter had chicken shawarma on saj bread and house-made tahini.",
+    "issues": [
+      "menu readout: lists what the platter contains, nothing experienced"
+    ],
+    "text": "Got the Chicken Saj Arabi Platter and the tahini was the best part."
   }
 ]

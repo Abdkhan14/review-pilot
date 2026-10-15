@@ -261,6 +261,32 @@ describe("buildPrompt", () => {
     expect(sys).toContain("poutine");
   });
 
+  it("includes the readout ban rule in the system prompt", () => {
+    const sys = buildPrompt(BASE_INPUT)[0].content;
+    expect(sys).toMatch(/what an item contains or comes with/i);
+    expect(sys).toMatch(/at least one thing you experienced/i);
+  });
+
+  it("angle line includes item name without context when no itemContext", () => {
+    const messages = buildPrompt({ ...BASE_INPUT, assignedItem: "Chicken Shawarma" });
+    const sys = messages[0].content;
+    expect(sys).toContain("Chicken Shawarma");
+    expect(sys).not.toContain("For your context only");
+    expect(sys).not.toContain("Do not describe what it contains");
+  });
+
+  it("angle line includes context phrase and do-not-describe when itemContext is given", () => {
+    const messages = buildPrompt({
+      ...BASE_INPUT,
+      assignedItem: "Chicken Saj Arabi Platter",
+      itemContext: "chicken shawarma on saj bread",
+    });
+    const sys = messages[0].content;
+    expect(sys).toContain("Chicken Saj Arabi Platter");
+    expect(sys).toContain("For your context only, it is chicken shawarma on saj bread");
+    expect(sys).toContain("Do not describe what it contains");
+  });
+
   it("still produces a prompt when snapshot reviews are missing", () => {
     const { reviews: _reviews, ...noReviews } = JOES;
     const messages = buildPrompt({ ...BASE_INPUT, snapshot: noReviews });

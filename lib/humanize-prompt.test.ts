@@ -9,9 +9,9 @@ const BASE_CTX: HumanizeContext = {
   lengthInstruction: "Length: Write 2-3 sentences.",
 };
 
-// With the new structure: system + 9 example pairs (18 turns) + 1 final user = 20 messages.
-const EXAMPLE_COUNT = EXAMPLES.length; // 9
-const TOTAL_MESSAGES = 1 + EXAMPLE_COUNT * 2 + 1; // 20
+// With the new structure: system + 10 example pairs (20 turns) + 1 final user = 22 messages.
+const EXAMPLE_COUNT = EXAMPLES.length; // 10
+const TOTAL_MESSAGES = 1 + EXAMPLE_COUNT * 2 + 1; // 22
 
 describe("buildHumanizePrompt", () => {
   // ─── Message structure ──────────────────────────────────────────────────────
@@ -217,5 +217,36 @@ describe("buildHumanizePrompt", () => {
       const parsed = JSON.parse(msgs[2 + i * 2].content) as { text: string };
       expect(parsed.text.toLowerCase()).not.toContain("inviting");
     }
+  });
+
+  // ─── Readout rule ────────────────────────────────────────────────────────────
+
+  it("system message includes the readout draft rule", () => {
+    const sys = buildHumanizePrompt("Draft.", BASE_CTX)[0].content;
+    expect(sys).toMatch(/readout draft/i);
+    expect(sys).toContain("what an item contains or came with");
+  });
+
+  it("system message includes the voice-override exception for readouts", () => {
+    const sys = buildHumanizePrompt("Draft.", BASE_CTX)[0].content;
+    expect(sys).toMatch(/readout.*must be converted even under no-opinion voices/i);
+  });
+
+  it("the readout example has a single issue about menu readout", () => {
+    const readoutEx = EXAMPLES.find((e) =>
+      e.draft.includes("had chicken shawarma on saj bread"),
+    );
+    expect(readoutEx).toBeDefined();
+    expect(readoutEx!.issues).toHaveLength(1);
+    expect(readoutEx!.issues[0]).toMatch(/menu readout/i);
+  });
+
+  it("the readout example output keeps the item name and includes an experienced reaction", () => {
+    const readoutEx = EXAMPLES.find((e) =>
+      e.draft.includes("had chicken shawarma on saj bread"),
+    );
+    expect(readoutEx!.text).toContain("Chicken Saj Arabi Platter");
+    // The output must contain something experienced — not a menu description
+    expect(readoutEx!.text).not.toContain("shawarma on saj bread");
   });
 });

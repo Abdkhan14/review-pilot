@@ -21,6 +21,12 @@ export type BuildPromptInput = {
   starIntent?: number;
   /** The catalog item assigned to this draft. Undefined when recipe.item === "skip". */
   assignedItem?: string;
+  /**
+   * Optional description of the assigned item (e.g. "chicken shawarma on saj bread").
+   * Included as context-only so the model understands what the item is without
+   * reading the description back verbatim as a menu card.
+   */
+  itemContext?: string;
   /** Prose-only lines from shop notes (item list already stripped out). */
   customInstructions?: string;
 };
@@ -57,7 +63,7 @@ export function buildPrompt(input: BuildPromptInput): PromptMessage[] {
 // ─── Private helpers ──────────────────────────────────────────────────────────
 
 function systemMessage(input: BuildPromptInput, starIntent: number): string {
-  const { angle, recipe, assignedItem } = input;
+  const { angle, recipe, assignedItem, itemContext } = input;
 
   // null = omit the line entirely; "" = keep as a blank separator.
   const lines: (string | null)[] = [
@@ -72,6 +78,7 @@ function systemMessage(input: BuildPromptInput, starIntent: number): string {
     "- Do not sell the place. Banned closers: will be back, highly recommend, if you're in the area, must try, hidden gem, 10/10, exceeded expectations, from start to finish, overall experience, by the way, worth trying, this area, it's rare to find, attention to detail, welcoming atmosphere, made all the difference, leave an impression, feel confident, I noticed, overall, one thing that caught my eye.",
     "- No exclamation marks.",
     "- No filler words: absolutely, amazing, fantastic, delightful, impeccable, seamless, mouth-watering, culinary, nestled, crafted, elevated, I highly recommend, definitely recommend, five stars, flavorful, vibrant, nicely, complemented, remained, throughout, good craftsmanship, paired with, a creamy note, each bite, warm touch, dining experience, satisfying, inviting, balanced flavor, aroma, exterior, served alongside.",
+    "- A review says what it was like, not what it is. Do not list what an item contains or comes with. Include at least one thing you experienced: taste, temperature, size, speed, or your reaction.",
     "- No stacked quality pairs — adjective or noun. Not tender and juicy, not shape and sharpness, not look and feel, not form and function. Pick one precise word.",
     "- No gratitude frames: I appreciated, I noticed, found the staff to be, thoughtful touch.",
     "- No contrast templates: X yet Y or X without any Y — not professional yet welcoming, not light without any heaviness.",
@@ -83,7 +90,7 @@ function systemMessage(input: BuildPromptInput, starIntent: number): string {
     "- First person.",
     `- Write in the tone of a ${starIntent}-star review. Do not set Google stars or fill in the Google form.`,
     "- Do not name staff unless shop notes include their name.",
-    angleInstruction(angle, assignedItem),
+    angleInstruction(angle, assignedItem, itemContext),
     itemInstruction(recipe.item, assignedItem) || null,
     proseFactInstruction(recipe.proseFact),
     textureInstruction(recipe.texture) || null,
@@ -107,9 +114,16 @@ function openerInstruction(opener: string): string {
   return OPENER_MAP.get(opener) ?? "";
 }
 
-function angleInstruction(angle: Angle, assignedItem: string | undefined): string {
+function angleInstruction(
+  angle: Angle,
+  assignedItem: string | undefined,
+  itemContext: string | undefined,
+): string {
   if (assignedItem) {
-    return `- Angle: "${angle.label}". The assigned item for this draft is ${assignedItem}.`;
+    const context = itemContext
+      ? ` For your context only, it is ${itemContext}. Do not describe what it contains.`
+      : "";
+    return `- Angle: "${angle.label}". The assigned item for this draft is ${assignedItem}.${context}`;
   }
   return `- Angle: "${angle.label}". If shop notes list items, pick: ${angle.pick}.`;
 }

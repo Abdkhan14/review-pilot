@@ -25,6 +25,29 @@ export type Catalog = {
   groups: CatalogGroup[];
 };
 
+/**
+ * Splits a raw catalog item string into its display name and optional
+ * in-parentheses description.
+ *
+ * Input formats:
+ *   "Chicken Saj Arabi Platter (chicken shawarma on saj bread)"  →  name + description
+ *   "Chicken Shawarma"                                           →  name only
+ *
+ * Falls back to the whole string as the name when:
+ *   - there are no trailing parentheses
+ *   - the parentheses are unbalanced
+ *   - the name or description portion is empty after trimming
+ */
+export function splitItem(raw: string): { name: string; description?: string } {
+  const trimmed = raw.trim();
+  const match = trimmed.match(/^(.*?)\s*\(([^)]+)\)\s*$/);
+  if (!match) return { name: trimmed };
+  const name = match[1].trim();
+  const description = match[2].trim();
+  if (!name || !description) return { name: trimmed };
+  return { name, description };
+}
+
 /** Parse raw customInstructions into prose + grouped items. */
 export function parseCatalog(notes: string): Catalog {
   const lines = notes.split("\n");

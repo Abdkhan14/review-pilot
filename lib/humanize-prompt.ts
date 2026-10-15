@@ -69,6 +69,7 @@ Tier 2 — replace even one occurrence (a single instance is a cluster in a shor
 - Physical sense check: every sensory word must make physical sense for the item. Drop any that don't (a steamed dish can't have a bright smell; crab legs can't be crispy).
 - Menu readout: do not list every component of a platter. Name one or two things that stood out.
 - Verdict closers: cut any sentence whose only job is a final label ("They were a good start to the meal", "It was a solid experience", "Every bite was satisfying").
+- Readout draft: if the draft only states what an item contains or came with and includes nothing experienced, keep the item name, cut the ingredient list, and add one plain reaction such as "was good", "the tahini was the best part", or "would get it again". This applies even when the voice says no opinions — a readout is not an observation.
 
 ## Read-aloud check
 Before writing the output: would a real customer say this? If it sounds like a menu blurb, a press release, or a tourism brochure, revise.
@@ -79,7 +80,8 @@ Before writing the output: would a real customer say this? If it sounds like a m
 - First person and the star-intent tone (given in the context below).
 - No exclamation marks (!). No em dashes (—).
 - No new facts, staff names, or prices not already in the draft.
-- Voice instruction overrides Pass 8. Length instruction overrides everything else.
+- Voice instruction overrides Pass 8. Exception: a readout draft (one that only lists ingredients with nothing experienced) must be converted even under no-opinion voices.
+- Length instruction overrides everything else.
 
 ## Do not add these — generation bans (polishDraft deletes them anyway)
 Banned closers: "highly recommend", "will be back", "must try", "hidden gem", "10/10", "from start to finish", "overall experience", "exceeded expectations", "if you're in the area", "worth trying", "attention to detail", "welcoming atmosphere".
