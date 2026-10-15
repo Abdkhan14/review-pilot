@@ -9,7 +9,7 @@ import VOICES_JSON from "./recipes/voices.json";
 import OPENERS_JSON from "./recipes/openers.json";
 import { businessKind } from "./business-kind";
 
-export type PromptMessage = { role: "system" | "user"; content: string };
+export type PromptMessage = { role: "system" | "user" | "assistant"; content: string };
 export type Angle = { label: string; pick: string };
 
 export type BuildPromptInput = {
@@ -95,11 +95,11 @@ function systemMessage(input: BuildPromptInput, starIntent: number): string {
   return lines.filter((line): line is string => line !== null).join("\n");
 }
 
-function lengthInstruction(length: string): string {
+export function lengthInstruction(length: string): string {
   return LENGTH_MAP.get(length) ?? "Length: Write 2-3 sentences.";
 }
 
-function voiceInstruction(voice: string): string {
+export function voiceInstruction(voice: string): string {
   return VOICE_MAP.get(voice) ?? "Voice: Be direct and factual.";
 }
 

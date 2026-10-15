@@ -18,6 +18,8 @@ vi.mock("@/lib/prompt-builder", () => ({
     { label: "service angle", pick: "a main" },
     { label: "vibe angle", pick: "a main" },
   ]),
+  voiceInstruction: vi.fn(() => "Voice: Be direct and factual."),
+  lengthInstruction: vi.fn(() => "Length: Write 2-3 sentences."),
 }));
 vi.mock("@/lib/review-recipe", () => ({
   sampleRecipeTrio: vi.fn(() => [
@@ -131,6 +133,19 @@ describe("POST /api/b/[slug]/generate", () => {
     await makePost("joes-pizza-ab12");
     const ids = mockBuildPrompt.mock.calls.map((c) => c[0].id);
     expect(ids).toEqual(["a", "b", "c"]);
+  });
+
+  it("passes slots with edit context to generateDrafts — each slot has shopName and starIntent", async () => {
+    mockFindBySlug.mockResolvedValue(SAAS_BUSINESS as any);
+    mockGenerateDrafts.mockResolvedValue(THREE_DRAFTS);
+    await makePost("joes-pizza-ab12");
+    const slots = mockGenerateDrafts.mock.calls[0][0];
+    expect(slots).toHaveLength(3);
+    for (const slot of slots) {
+      expect(slot).toHaveProperty("messages");
+      expect(slot.edit.shopName).toBe("Joe's Pizza");
+      expect(slot.edit.starIntent).toBe(5);
+    }
   });
 
   it("returns 500 when GenerationError is thrown and does not leak model output", async () => {
