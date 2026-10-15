@@ -2,8 +2,8 @@ import "server-only";
 import { NextRequest, NextResponse } from "next/server";
 import { findBySlug } from "@/lib/business-repo";
 import { db } from "@/lib/db";
-import { buildPrompt, anglesForPrimaryType } from "@/lib/prompt-builder";
-import { generateDrafts, GenerationError } from "@/lib/generate-drafts";
+import { buildPrompt, anglesForPrimaryType, voiceInstruction, lengthInstruction } from "@/lib/prompt-builder";
+import { generateDrafts, GenerationError, type DraftSlot } from "@/lib/generate-drafts";
 import { ipFromHeaders, rateLimitKey, checkRateLimit } from "@/lib/rate-limit";
 import { parseCatalog, sampleItems, DRAFT_COUNT } from "@/lib/catalog-items";
 import { todayCount, isDailyCapped, nextUtcMidnightMs } from "@/lib/handoff";
@@ -11,6 +11,7 @@ import { sampleRecipeTrio } from "@/lib/review-recipe";
 import { applyTexture, applyTypo } from "@/lib/review-texture";
 import { polishDraft } from "@/lib/review-polish";
 import type { PlaceSnapshot } from "@/lib/place-snapshot";
+import type { HumanizeContext } from "@/lib/humanize-prompt";
 
 const DRAFT_IDS = ["a", "b", "c"] as const;
 type DraftId = (typeof DRAFT_IDS)[number];
@@ -84,10 +85,10 @@ export async function POST(
   const angles = anglesForPrimaryType(snapshot.primaryType);
   const recipes = sampleRecipeTrio(Math.random, snapshot.primaryType);
 
-  const messagesList = DRAFT_IDS.map((id, i) => {
+  const slots: DraftSlot[] = DRAFT_IDS.map((id, i) => {
     const recipe = recipes[i];
     const assignedItem = itemNames[i] || undefined;
-    return buildPrompt({
+    const messages = buildPrompt({
       id: id as DraftId,
       snapshot,
       angle: angles[i],
@@ -95,10 +96,18 @@ export async function POST(
       assignedItem,
       customInstructions: promptNotes,
     });
+    const edit: HumanizeContext = {
+      shopName: snapshot.name,
+      assignedItem,
+      starIntent: 5,
+      voiceInstruction: voiceInstruction(recipe.voice),
+      lengthInstruction: lengthInstruction(recipe.length),
+    };
+    return { messages, edit };
   });
 
   try {
-    const drafts = await generateDrafts(messagesList);
+    const drafts = await generateDrafts(slots);
 
     // For every draft: apply all AI-tell polish passes (polishDraft) which
     // strips stacked adjectives, intensifiers, banned closers, hashtags, and
