@@ -11,7 +11,7 @@ export type HumanizeContext = {
 
 // ─── Static system message (built once at module load) ────────────────────────
 //
-// Contains the full 8-pass humanize checklist adapted for 1-3 sentence reviews.
+// Contains the full 9-pass humanize checklist adapted for 1-3 sentence reviews.
 // At this scale every density rule ("3+ in a piece") becomes a hard rule — a
 // single instance is already too many. The numbered format and explicit
 // "pattern → fix" swaps help nano follow the procedure reliably.
@@ -45,6 +45,7 @@ Tier 2 — replace even one occurrence (a single instance is a cluster in a shor
 ## 5. Rhythm and style
 - In a review of 2 or more sentences, include at least one sentence under 8 words.
 - Sentences may start with But, And, or So. Fragments are fine.
+- Do not start more than two consecutive sentences with "The" or "They".
 - Remove all em dashes (—), boldface, emoji, markdown formatting, and curly quotes (\u201c\u201d).
 
 ## 6. Hedging and filler
@@ -62,6 +63,13 @@ Tier 2 — replace even one occurrence (a single instance is a cluster in a shor
 - Mild surprise is fine ("didn't expect much and it was solid"). No complaints. No slang. No new facts.
 - SKIP this pass entirely when the voice says: "State what happened", "No opinion", "Observations, not opinions", "Say the bare minimum", "factual".
 
+## 9. Verdict and critic words
+- Verdict grades: replace "satisfying", "enjoyable", "pleasant", "inviting", "appealing", "impressive" with the specific detail that earned it. If there is no detail to name, use "good" or cut the sentence.
+- Plain-speech swaps: "arrived" followed only by an adjective or adverb → "came out"; "served alongside" → "on the side"; "crisp exterior and tender center" → "crispy outside, soft inside"; "aroma" → "smell"; "balanced flavor" → "good flavor".
+- Physical sense check: every sensory word must make physical sense for the item. Drop any that don't (a steamed dish can't have a bright smell; crab legs can't be crispy).
+- Menu readout: do not list every component of a platter. Name one or two things that stood out.
+- Verdict closers: cut any sentence whose only job is a final label ("They were a good start to the meal", "It was a solid experience", "Every bite was satisfying").
+
 ## Read-aloud check
 Before writing the output: would a real customer say this? If it sounds like a menu blurb, a press release, or a tourism brochure, revise.
 
@@ -76,7 +84,7 @@ Before writing the output: would a real customer say this? If it sounds like a m
 ## Do not add these — generation bans (polishDraft deletes them anyway)
 Banned closers: "highly recommend", "will be back", "must try", "hidden gem", "10/10", "from start to finish", "overall experience", "exceeded expectations", "if you're in the area", "worth trying", "attention to detail", "welcoming atmosphere".
 Gratitude frames: "I appreciated", "I noticed", "thoughtful touch", "found the staff to be".
-Banned filler: "paired with", "nicely", "complemented", "remained", "throughout", "dining experience", "culinary", "mouth-watering", "flavorful", "vibrant".
+Banned filler: "paired with", "nicely", "complemented", "remained", "throughout", "dining experience", "culinary", "mouth-watering", "flavorful", "vibrant", "satisfying", "inviting", "aroma", "balanced flavor", "arrived promptly", "served alongside", "each bite".
 
 ## Output format
 Return JSON only:
@@ -115,7 +123,7 @@ const EXAMPLE_TURNS: PromptMessage[] = (EXAMPLES as Example[]).flatMap((ex) => [
  * Builds the message array for the humanize editor pass.
  *
  * Structure:
- *   [0]       system  — full 8-pass checklist (static, same on every call)
+ *   [0]       system  — full 9-pass checklist (static, same on every call)
  *   [1..10]   user/assistant example turns (static, 5 pairs)
  *   [last]    user    — per-draft context (shop, item, voice, length, stars)
  *                       followed by the draft text to edit

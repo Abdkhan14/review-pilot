@@ -25,6 +25,31 @@ const DENYLISTED_ADVERBS = new Set([
 ]);
 
 /**
+ * Trailing analytic -ing clauses that explain or annotate the preceding
+ * clause. These are always comma-separated from the main clause and end at
+ * the next sentence terminator.
+ *
+ * Matches: ", showing attentiveness", ", highlighting that they had plenty…",
+ *          ", making each bite satisfying", ", offering a more generous serving"
+ */
+const ANALYTIC_ING_TAILS_RE =
+  /,\s*(?:showing|highlighting|showcasing|underscoring|reflecting|emphasizing|ensuring|making\s+(?:each|every)\s+\w+|making\s+it|adding\s+a|offering\s+a|creating\s+a|providing\s+a)\b[^.!?]*(?=[.!?]|$)/gi;
+
+/**
+ * Verdict and food-critic word swaps. Deterministic fallback for anything the
+ * editor pass didn't fix. Applied after closer-sentence drop so the patterns
+ * can appear in dropped sentences without leaving orphaned replacements.
+ */
+const VERDICT_SWAPS: { pattern: RegExp; replacement: string }[] = [
+  { pattern: /\bsatisfying\b/gi, replacement: "good" },
+  { pattern: /\binviting\b/gi, replacement: "good" },
+  { pattern: /\bvibrant\b/gi, replacement: "fresh" },
+  { pattern: /\bbalanced flavor\b/gi, replacement: "good flavor" },
+  { pattern: /\barrived promptly\b/gi, replacement: "came out fast" },
+  { pattern: /\bserved alongside\b/gi, replacement: "on the side" },
+];
+
+/**
  * Banned closer phrases. When a sentence contains any of these the whole
  * sentence is dropped — not just the phrase — because phrase-level deletion
  * leaves surrounding words orphaned and ungrammatical:
@@ -61,9 +86,28 @@ const BANNED_CLOSERS = [
   // Observer frames — model uses these despite the prompt ban
   "I noticed",
   "overall",
+  // Verdict-grade closers
+  "good start to the meal",
+  "a good start",
+  "each bite",
 ] as const;
 
 // ─── Passes ───────────────────────────────────────────────────────────────────
+
+/**
+ * Builds a set of lowercase word fragments (≥3 chars) from protected phrases
+ * (shop name, assigned item). Used to skip swap/delete passes when the
+ * target word appears inside a protected phrase.
+ */
+function buildProtectedSet(protected_: string[]): Set<string> {
+  const words = new Set<string>();
+  for (const phrase of protected_) {
+    for (const w of phrase.toLowerCase().split(/\W+/)) {
+      if (w.length >= 3) words.add(w);
+    }
+  }
+  return words;
+}
 
 /**
  * Pass 1 — punctuation normalisation (string replace, no POS needed).
@@ -116,8 +160,42 @@ function removeInlineColonDescriptions(text: string): string {
 }
 
 /**
- * Splits text into sentences by cutting on whitespace that follows a period.
+ * Pass 2.5b — remove trailing analytic -ing clauses.
  *
+ * Strips ", showing attentiveness", ", making each bite satisfying", and
+ * similar comma-prefixed participle clauses that only annotate what the
+ * preceding clause already said. Guard words (shop name, item) are never
+ * removed even if the clause contains them.
+ */
+function dropAnalyticIngTails(text: string, guard: Set<string>): string {
+  return text.replace(ANALYTIC_ING_TAILS_RE, (match) => {
+    if (guard.size > 0 && [...guard].some((w) => match.toLowerCase().includes(w))) return match;
+    return "";
+  });
+}
+
+/**
+ * Pass 2.5c — apply verdict and food-critic word swaps.
+ *
+ * Deterministic replacement for patterns that the editor pass may have
+ * missed. Preserves sentence-initial capitalisation. Protected words
+ * (shop name, item) are never swapped.
+ */
+function applyVerdictSwaps(text: string, guard: Set<string>): string {
+  let out = text;
+  for (const { pattern, replacement } of VERDICT_SWAPS) {
+    out = out.replace(pattern, (match) => {
+      if (guard.size > 0 && [...guard].some((w) => match.toLowerCase().includes(w))) return match;
+      const cap =
+        match[0] === match[0].toUpperCase() && match[0] !== match[0].toLowerCase();
+      return cap ? replacement[0].toUpperCase() + replacement.slice(1) : replacement;
+    });
+  }
+  return out;
+}
+
+/**
+ * Splits text into sentences by cutting on whitespace that follows a period.
  * Uses a string regex rather than compromise's `.sentences().out("array")` to
  * preserve original casing — compromise's `.out()` can recapitalize the first
  * word of each sentence, which would undo texture slips like a lowercase start
@@ -218,8 +296,10 @@ function removeDenylistedAdverbs(text: string): string {
  * 1. Strip intensifier adverbs and stacked adjective/noun pairs (`stripAdjectives`).
  * 2. Normalise exclamation marks to periods and em dashes to commas.
  * 2.5. Strip mid-sentence colon item descriptions (`poutine: fries with…` → `poutine`).
+ * 2.5b. Drop trailing analytic -ing clauses (", showing attentiveness", ", making each bite…").
  * 3. Drop full sentences that contain a banned closer phrase (when at least
  *    one other sentence would remain).
+ * 2.5c. Apply verdict/food-critic word swaps (satisfying → good, vibrant → fresh, etc.).
  * 4. Contract expanded verb forms per sentence (`I am` → `I'm`).
  * 5. Delete hashtags.
  * 6. Delete denylisted -ly adverbs (`seamlessly`, `perfectly`, etc.).
@@ -231,13 +311,16 @@ function removeDenylistedAdverbs(text: string): string {
  * introduced by the texture pass are not retagged or normalised.
  */
 export function polishDraft(text: string, protected_: string[] = []): string {
+  const guard = buildProtectedSet(protected_);
   const safe = (result: string, fallback: string): string =>
     result.trim() ? result : fallback;
 
   let out = stripAdjectives(text, protected_);
   out = safe(normalisePunctuation(out), out);
   out = safe(removeInlineColonDescriptions(out), out);
+  out = safe(dropAnalyticIngTails(out, guard), out);
   out = safe(dropCloserSentences(out), out);
+  out = safe(applyVerdictSwaps(out, guard), out);
   out = safe(contractSentences(out), out);
   out = safe(removeHashtags(out), out);
   out = safe(removeDenylistedAdverbs(out), out);

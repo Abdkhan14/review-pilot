@@ -9,9 +9,9 @@ const BASE_CTX: HumanizeContext = {
   lengthInstruction: "Length: Write 2-3 sentences.",
 };
 
-// With the new structure: system + 5 example pairs (10 turns) + 1 final user = 12 messages.
-const EXAMPLE_COUNT = EXAMPLES.length; // 5
-const TOTAL_MESSAGES = 1 + EXAMPLE_COUNT * 2 + 1; // 12
+// With the new structure: system + 9 example pairs (18 turns) + 1 final user = 20 messages.
+const EXAMPLE_COUNT = EXAMPLES.length; // 9
+const TOTAL_MESSAGES = 1 + EXAMPLE_COUNT * 2 + 1; // 20
 
 describe("buildHumanizePrompt", () => {
   // ─── Message structure ──────────────────────────────────────────────────────
@@ -160,9 +160,62 @@ describe("buildHumanizePrompt", () => {
   });
 
   it("the unchanged example has an empty issues array and identical text", () => {
-    // The last example in the JSON is the 'already human' one.
-    const lastExample = EXAMPLES[EXAMPLES.length - 1];
-    expect(lastExample.issues).toHaveLength(0);
-    expect(lastExample.text).toBe(lastExample.draft);
+    // The fifth example (Corner Bakery) in the JSON is the 'already human' one.
+    const cornerBakery = EXAMPLES.find((e) => e.draft === e.text);
+    expect(cornerBakery).toBeDefined();
+    expect(cornerBakery!.issues).toHaveLength(0);
+  });
+
+  // ─── Verdict pass in system message ────────────────────────────────────────
+
+  it("system message includes the verdict and critic words pass", () => {
+    const sys = buildHumanizePrompt("Draft.", BASE_CTX)[0].content;
+    expect(sys).toContain("Verdict and critic words");
+  });
+
+  it("system message includes verdict grade words to replace", () => {
+    const sys = buildHumanizePrompt("Draft.", BASE_CTX)[0].content;
+    expect(sys).toContain("satisfying");
+    expect(sys).toContain("inviting");
+    expect(sys).toContain("appealing");
+  });
+
+  it("system message includes the aroma plain-speech swap", () => {
+    const sys = buildHumanizePrompt("Draft.", BASE_CTX)[0].content;
+    expect(sys).toContain("aroma");
+    expect(sys).toContain("smell");
+  });
+
+  it("system message includes the The/They consecutive-opener rule", () => {
+    const sys = buildHumanizePrompt("Draft.", BASE_CTX)[0].content;
+    expect(sys).toContain("The");
+    expect(sys).toContain("They");
+    expect(sys).toContain("two consecutive sentences");
+  });
+
+  // ─── No verdict words in example outputs ────────────────────────────────────
+
+  it("no example assistant text contains 'satisfying'", () => {
+    const msgs = buildHumanizePrompt("Draft.", BASE_CTX);
+    for (let i = 0; i < EXAMPLE_COUNT; i++) {
+      const parsed = JSON.parse(msgs[2 + i * 2].content) as { text: string };
+      expect(parsed.text.toLowerCase()).not.toContain("satisfying");
+    }
+  });
+
+  it("no example assistant text contains 'vibrant'", () => {
+    const msgs = buildHumanizePrompt("Draft.", BASE_CTX);
+    for (let i = 0; i < EXAMPLE_COUNT; i++) {
+      const parsed = JSON.parse(msgs[2 + i * 2].content) as { text: string };
+      expect(parsed.text.toLowerCase()).not.toContain("vibrant");
+    }
+  });
+
+  it("no example assistant text contains 'inviting' (as verdict adjective)", () => {
+    const msgs = buildHumanizePrompt("Draft.", BASE_CTX);
+    for (let i = 0; i < EXAMPLE_COUNT; i++) {
+      const parsed = JSON.parse(msgs[2 + i * 2].content) as { text: string };
+      expect(parsed.text.toLowerCase()).not.toContain("inviting");
+    }
   });
 });

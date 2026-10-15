@@ -252,4 +252,32 @@ describe("generateDrafts", () => {
     expect(mockCreate).toHaveBeenCalledTimes(3);
     expect(drafts[0].text).toBe("Great pizza!");
   });
+
+  // ─── Debug logging ────────────────────────────────────────────────────────────
+
+  it("logs a [humanize] line to console.info when DRAFT_EDIT_DEBUG=1 and the edit succeeds", async () => {
+    process.env.DRAFT_EDIT_DEBUG = "1";
+    const infoSpy = vi.spyOn(console, "info").mockImplementation(() => {});
+    try {
+      stubCreates(DRAFT_A, DRAFT_B, DRAFT_C, editJson("Good pizza."), EDIT_B, EDIT_C);
+      await generateDrafts(SLOTS);
+      const humanizeCalls = infoSpy.mock.calls.filter((c) => String(c[0]).includes("[humanize]"));
+      expect(humanizeCalls.length).toBeGreaterThan(0);
+    } finally {
+      infoSpy.mockRestore();
+      delete process.env.DRAFT_EDIT_DEBUG;
+    }
+  });
+
+  it("does not call console.info when DRAFT_EDIT_DEBUG is not set", async () => {
+    delete process.env.DRAFT_EDIT_DEBUG;
+    const infoSpy = vi.spyOn(console, "info").mockImplementation(() => {});
+    try {
+      stubCreates(DRAFT_A, DRAFT_B, DRAFT_C, EDIT_A, EDIT_B, EDIT_C);
+      await generateDrafts(SLOTS);
+      expect(infoSpy).not.toHaveBeenCalled();
+    } finally {
+      infoSpy.mockRestore();
+    }
+  });
 });

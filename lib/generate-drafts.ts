@@ -83,6 +83,8 @@ function countSentences(text: string): number {
 async function humanizeDraft(draft: DraftReview, ctx: HumanizeContext): Promise<DraftReview> {
   if (process.env.DRAFT_EDIT_PASS === "off") return draft;
 
+  const debug = process.env.DRAFT_EDIT_DEBUG === "1";
+
   const client = getClient();
   const messages = buildHumanizePrompt(draft.text, ctx);
   const model =
@@ -97,21 +99,31 @@ async function humanizeDraft(draft: DraftReview, ctx: HumanizeContext): Promise<
       temperature: 0.4,
     });
     content = completion.choices[0]?.message?.content;
-  } catch {
+  } catch (err) {
+    if (debug) console.info(`[humanize] id=${draft.id} fallback=api-error error=${String(err)}`);
     return draft;
   }
 
   let editedText: string;
+  let issues: unknown[] = [];
   try {
     const parsed = JSON.parse(content ?? "");
-    if (typeof parsed?.text !== "string" || !parsed.text.trim()) return draft;
+    if (typeof parsed?.text !== "string" || !parsed.text.trim()) {
+      if (debug) console.info(`[humanize] id=${draft.id} fallback=empty-text raw=${String(content)}`);
+      return draft;
+    }
     editedText = parsed.text.trim();
+    if (Array.isArray(parsed.issues)) issues = parsed.issues;
   } catch {
+    if (debug) console.info(`[humanize] id=${draft.id} fallback=non-json raw=${String(content)}`);
     return draft;
   }
 
   // Guard: editor must not expand the review beyond 3 sentences.
-  if (countSentences(editedText) > 3) return draft;
+  if (countSentences(editedText) > 3) {
+    if (debug) console.info(`[humanize] id=${draft.id} fallback=sent-over-limit edit="${editedText}"`);
+    return draft;
+  }
 
   // Guard: if the original mentioned the assigned item, the edit must too.
   if (ctx.assignedItem) {
@@ -120,8 +132,15 @@ async function humanizeDraft(draft: DraftReview, ctx: HumanizeContext): Promise<
       draft.text.toLowerCase().includes(itemLower) &&
       !editedText.toLowerCase().includes(itemLower)
     ) {
+      if (debug) console.info(`[humanize] id=${draft.id} fallback=dropped-item item="${ctx.assignedItem}" edit="${editedText}"`);
       return draft;
     }
+  }
+
+  if (debug) {
+    console.info(
+      `[humanize] id=${draft.id} issues=${JSON.stringify(issues)} original="${draft.text}" edit="${editedText}"`,
+    );
   }
 
   return { ...draft, text: editedText };

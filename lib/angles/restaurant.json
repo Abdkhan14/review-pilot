@@ -40,7 +40,7 @@
   { "label": "what you skipped on the menu", "pick": "the main or option you did not order; do not name a side as the one that got away" },
   { "label": "how the meal compared to last time", "pick": "the main you had before; note any changes" },
   { "label": "whether you got what you actually ordered", "pick": "the main or the thing that came wrong" },
-  { "label": "how it smelled while eating", "pick": "the main's aroma at the table, not the room" },
+  { "label": "how it smelled while eating", "pick": "the main's smell at the table — describe it plainly, not 'aroma'" },
   { "label": "which part of the menu you ordered from", "pick": "the main you landed on; not a side or a drink" },
   { "label": "the dish that looked best on another table", "pick": "a main you noticed at another table; not the room" },
   { "label": "how the lighting felt", "pick": "atmosphere; skip naming food" },
