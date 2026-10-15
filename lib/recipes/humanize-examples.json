@@ -47,5 +47,58 @@
     "draft": "Got the sourdough. Dense crumb, good crust.",
     "issues": [],
     "text": "Got the sourdough. Dense crumb, good crust."
+  },
+  {
+    "context": "Shop: Red Lobster\nItem: Admiral's Feast\nVoice: Be specific about one concrete detail — texture, timing, temperature, or size.\nLength: Write 2-3 sentences.\nStars: 5",
+    "draft": "I tried the Admiral's Feast. The fried shrimp, scallops, clam strips, and fish were satisfying, and the seafood was fresh.",
+    "issues": [
+      "menu readout: lists every component of the platter",
+      "verdict grade: 'satisfying'",
+      "generic verdict closer: 'the seafood was fresh'"
+    ],
+    "text": "Got the Admiral's Feast. The scallops were the best part."
+  },
+  {
+    "context": "Shop: Red Lobster\nVoice: Be direct and punchy. Short observations only.\nLength: Write 2-3 sentences.\nStars: 5",
+    "draft": "The warm garlic cheddar biscuits arrived promptly. They had a crisp exterior and a tender center. They were a good start to the meal.",
+    "issues": [
+      "report verb: 'arrived promptly'",
+      "food-critic contrast pair: 'crisp exterior and tender center'",
+      "verdict closer: 'They were a good start to the meal'",
+      "three consecutive The/They openers"
+    ],
+    "text": "The garlic cheddar biscuits came out warm right when we sat down. Crispy outside, soft inside. Could've eaten the whole basket."
+  },
+  {
+    "context": "Shop: Red Lobster\nItem: Snow Crab\nVoice: Be specific about one concrete detail — texture, timing, temperature, or size.\nLength: Write 2-3 sentences.\nStars: 5",
+    "draft": "The steamed snow crab legs looked inviting with their bright aroma. The meat inside was cool to touch and surprisingly firm, making each bite satisfying. That crispness contrasted well with the melted butter served alongside.",
+    "issues": [
+      "verdict: 'inviting'",
+      "physical mismatch: steamed crab can't have a bright smell; crab legs aren't crispy",
+      "trailing -ing: 'making each bite satisfying'",
+      "banned: 'each bite'",
+      "report phrase: 'served alongside'"
+    ],
+    "text": "The snow crab meat was firmer than I expected. Plenty of butter on the side."
+  },
+  {
+    "context": "Shop: Shawarma Palace\nItem: Chicken Salad\nVoice: State what happened. Observations, not opinions.\nLength: Write 2-3 sentences.\nStars: 5",
+    "draft": "The Chicken Salad with shawarma on greens arrived vibrant. The server offered extra dressing without prompting, showing attentiveness. Each bite had a balanced flavor.",
+    "issues": [
+      "banned vocab: 'vibrant'",
+      "report verb + filler adjective: 'arrived vibrant'",
+      "trailing -ing: 'showing attentiveness'",
+      "banned: 'each bite'",
+      "food-critic phrase: 'balanced flavor'"
+    ],
+    "text": "The Chicken Salad with shawarma on greens was good. The server brought extra dressing over before I asked."
+  },
+  {
+    "context": "Shop: Saj House\nItem: Chicken Saj Arabi Platter\nVoice: State what happened. Observations, not opinions.\nLength: Write exactly 1 sentence.\nStars: 5",
+    "draft": "The Chicken Saj Arabi Platter had chicken shawarma on saj bread and house-made tahini.",
+    "issues": [
+      "menu readout: lists what the platter contains, nothing experienced"
+    ],
+    "text": "Got the Chicken Saj Arabi Platter and the tahini was the best part."
   }
 ]

@@ -5,7 +5,7 @@ import { db } from "@/lib/db";
 import { buildPrompt, anglesForPrimaryType, voiceInstruction, lengthInstruction } from "@/lib/prompt-builder";
 import { generateDrafts, GenerationError, type DraftSlot } from "@/lib/generate-drafts";
 import { ipFromHeaders, rateLimitKey, checkRateLimit } from "@/lib/rate-limit";
-import { parseCatalog, sampleItems, DRAFT_COUNT } from "@/lib/catalog-items";
+import { parseCatalog, sampleItems, splitItem, DRAFT_COUNT } from "@/lib/catalog-items";
 import { todayCount, isDailyCapped, nextUtcMidnightMs } from "@/lib/handoff";
 import { sampleRecipeTrio } from "@/lib/review-recipe";
 import { applyTexture, applyTypo } from "@/lib/review-texture";
@@ -85,15 +85,24 @@ export async function POST(
   const angles = anglesForPrimaryType(snapshot.primaryType);
   const recipes = sampleRecipeTrio(Math.random, snapshot.primaryType);
 
+  // Split each raw item string into name + optional description so that only
+  // the name is used as the assigned item (and as a protected string). The
+  // description is passed separately so the model has context without being
+  // tempted to read it back verbatim.
+  const splitItems = itemNames.map((n) => splitItem(n));
+
   const slots: DraftSlot[] = DRAFT_IDS.map((id, i) => {
     const recipe = recipes[i];
-    const assignedItem = itemNames[i] || undefined;
+    const split = splitItems[i];
+    const assignedItem = split?.name || undefined;
+    const itemContext = split?.description || undefined;
     const messages = buildPrompt({
       id: id as DraftId,
       snapshot,
       angle: angles[i],
       recipe,
       assignedItem,
+      itemContext,
       customInstructions: promptNotes,
     });
     const edit: HumanizeContext = {
@@ -116,7 +125,7 @@ export async function POST(
     // a rare one-word typo to a different draft (applyTypo).
     const reviews = drafts.map((draft, i) => {
       const recipe = recipes[i];
-      const assignedItem = itemNames[i];
+      const assignedItem = splitItems[i]?.name;
       const protectedStrings = [snapshot.name, ...(assignedItem ? [assignedItem] : [])];
 
       let text = polishDraft(draft.text, protectedStrings);

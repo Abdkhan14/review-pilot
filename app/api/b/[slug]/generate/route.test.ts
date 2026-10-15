@@ -256,4 +256,37 @@ describe("POST /api/b/[slug]/generate", () => {
     expect(mockHandoffFindUnique).not.toHaveBeenCalled();
     expect(mockGenerateDrafts).toHaveBeenCalledTimes(1);
   });
+
+  it("splits item name from description — buildPrompt gets name only as assignedItem, description as itemContext", async () => {
+    const businessWithDescriptions = {
+      ...SAAS_BUSINESS,
+      customInstructions: "# Mains\n- Chicken Saj Arabi Platter (chicken shawarma on saj bread)\n- Mixed Grill (assorted grilled meats)\n- Lamb Kofta Wrap (spiced lamb kofta in a wrap)",
+    };
+    mockFindBySlug.mockResolvedValue(businessWithDescriptions as any);
+    mockGenerateDrafts.mockResolvedValue(THREE_DRAFTS);
+    await makePost("joes-pizza-ab12");
+
+    for (const [call] of mockBuildPrompt.mock.calls) {
+      // assignedItem must be just the name — no parenthetical
+      expect(call.assignedItem).not.toContain("(");
+      expect(call.assignedItem).not.toContain(")");
+      // itemContext must be the description only
+      expect(call.itemContext).toBeDefined();
+      expect(call.itemContext).not.toContain("(");
+    }
+  });
+
+  it("passes undefined itemContext when the catalog item has no parenthetical description", async () => {
+    const businessWithPlainItems = {
+      ...SAAS_BUSINESS,
+      customInstructions: "# Mains\n- Shawarma\n- Mixed Grill\n\n# Sides\n- Hummus",
+    };
+    mockFindBySlug.mockResolvedValue(businessWithPlainItems as any);
+    mockGenerateDrafts.mockResolvedValue(THREE_DRAFTS);
+    await makePost("joes-pizza-ab12");
+
+    for (const [call] of mockBuildPrompt.mock.calls) {
+      expect(call.itemContext).toBeUndefined();
+    }
+  });
 });

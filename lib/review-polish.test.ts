@@ -424,4 +424,137 @@ describe("polishDraft", () => {
       expect(result.trimEnd()).toBe(result);
     });
   });
+
+  // ─── Analytic -ing tail removal ──────────────────────────────────────────────
+
+  describe("dropAnalyticIngTails", () => {
+    it("removes a trailing ', showing X' clause", () => {
+      const result = polishDraft(
+        "The server brought extra dressing, showing attentiveness.",
+      );
+      expect(result).not.toContain("showing attentiveness");
+      expect(result).toContain("The server brought extra dressing");
+    });
+
+    it("removes a trailing ', highlighting that X' clause", () => {
+      const result = polishDraft(
+        "The oil change took 30 minutes, highlighting that they were efficient.",
+      );
+      expect(result).not.toContain("highlighting");
+      expect(result).toContain("oil change");
+    });
+
+    it("removes a trailing ', making each bite X' clause", () => {
+      const result = polishDraft(
+        "The meat was firm, making each bite satisfying.",
+      );
+      expect(result).not.toContain("making each bite");
+      expect(result).toContain("firm");
+    });
+
+    it("removes a trailing ', offering a more generous serving' clause", () => {
+      const result = polishDraft(
+        "The calamari was bigger than last time, offering a more generous serving.",
+      );
+      expect(result).not.toContain("offering a more generous serving");
+      expect(result).toContain("bigger than last time");
+    });
+
+    it("does not remove 'watching' which is a genuine concurrent action", () => {
+      const text = "I sat by the window, watching the street outside.";
+      expect(polishDraft(text)).toContain("watching");
+    });
+
+    it("does not remove the tail when the shop name appears in it", () => {
+      const result = polishDraft(
+        "Great service, showcasing Joe's Pizza's commitment.",
+        ["Joe's Pizza"],
+      );
+      expect(result).toContain("Joe's Pizza");
+    });
+  });
+
+  // ─── Verdict swaps ────────────────────────────────────────────────────────────
+
+  describe("verdict swaps", () => {
+    it("replaces 'satisfying' with 'good'", () => {
+      const result = polishDraft("The wrap was satisfying.");
+      expect(result).not.toContain("satisfying");
+      expect(result).toContain("good");
+    });
+
+    it("replaces 'inviting' with 'good'", () => {
+      const result = polishDraft("The crab looked inviting.");
+      expect(result).not.toContain("inviting");
+      expect(result).toContain("good");
+    });
+
+    it("replaces 'vibrant' with 'fresh'", () => {
+      const result = polishDraft("The salad arrived vibrant.");
+      expect(result).not.toContain("vibrant");
+      expect(result).toContain("fresh");
+    });
+
+    it("replaces 'balanced flavor' with 'good flavor'", () => {
+      const result = polishDraft("The dish had a balanced flavor.");
+      expect(result).not.toContain("balanced flavor");
+      expect(result).toContain("good flavor");
+    });
+
+    it("replaces 'arrived promptly' with 'came out fast'", () => {
+      const result = polishDraft("The biscuits arrived promptly.");
+      expect(result).not.toContain("arrived promptly");
+      expect(result).toContain("came out fast");
+    });
+
+    it("replaces 'served alongside' with 'on the side'", () => {
+      const result = polishDraft("Melted butter served alongside.");
+      expect(result).not.toContain("served alongside");
+      expect(result).toContain("on the side");
+    });
+
+    it("preserves sentence-initial capitalisation after a swap", () => {
+      // Single-word sentence — no noun phrase for stripAdjectives to cap,
+      // so "Satisfying" survives that pass and the swap produces "Good."
+      const result = polishDraft("Satisfying.");
+      expect(result).toMatch(/^Good/);
+    });
+
+    it("does not swap a verdict word that is part of a protected phrase", () => {
+      // Shop named "Satisfying Bowls" — the word must survive.
+      const result = polishDraft("I tried Satisfying Bowls today.", ["Satisfying Bowls"]);
+      expect(result).toContain("Satisfying Bowls");
+    });
+  });
+
+  // ─── Verdict-grade BANNED_CLOSERS ─────────────────────────────────────────────
+
+  describe("verdict-grade banned closers", () => {
+    it("drops 'good start to the meal' sentence when another sentence exists", () => {
+      const result = polishDraft(
+        "The biscuits came out crispy. They were a good start to the meal.",
+      );
+      expect(result).toContain("biscuits");
+      expect(result).not.toContain("good start to the meal");
+    });
+
+    it("drops 'a good start' sentence when another sentence exists", () => {
+      const result = polishDraft("The soup was warm. It was a good start.");
+      expect(result).toContain("soup");
+      expect(result).not.toContain("a good start");
+    });
+
+    it("drops 'each bite' sentence when another sentence exists", () => {
+      const result = polishDraft(
+        "The crab was firm. Each bite was satisfying.",
+      );
+      expect(result).toContain("crab");
+      expect(result).not.toContain("each bite");
+    });
+
+    it("leaves a single-sentence 'each bite' review unchanged", () => {
+      const text = "Each bite was satisfying.";
+      expect(polishDraft(text)).toBeTruthy();
+    });
+  });
 });

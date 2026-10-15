@@ -1,5 +1,52 @@
 import { describe, it, expect } from "vitest";
-import { parseCatalog, sampleItems } from "./catalog-items";
+import { parseCatalog, sampleItems, splitItem } from "./catalog-items";
+
+// ─── splitItem ───────────────────────────────────────────────────────────────
+
+describe("splitItem", () => {
+  it("returns name only when there are no parentheses", () => {
+    const result = splitItem("Chicken Shawarma");
+    expect(result.name).toBe("Chicken Shawarma");
+    expect(result.description).toBeUndefined();
+  });
+
+  it("splits a trailing parenthetical into name and description", () => {
+    const result = splitItem("Chicken Saj Arabi Platter (chicken shawarma on saj bread)");
+    expect(result.name).toBe("Chicken Saj Arabi Platter");
+    expect(result.description).toBe("chicken shawarma on saj bread");
+  });
+
+  it("trims surrounding whitespace from name and description", () => {
+    const result = splitItem("  Mixed Grill Platter  ( assorted grilled meats )  ");
+    expect(result.name).toBe("Mixed Grill Platter");
+    expect(result.description).toBe("assorted grilled meats");
+  });
+
+  it("falls back to the full string when the name portion is empty", () => {
+    const result = splitItem("(just a description)");
+    expect(result.name).toBe("(just a description)");
+    expect(result.description).toBeUndefined();
+  });
+
+  it("falls back to the full string when parentheses contain only whitespace", () => {
+    const result = splitItem("Item Name (   )");
+    expect(result.name).toBe("Item Name (   )");
+    expect(result.description).toBeUndefined();
+  });
+
+  it("does not split on mid-string parentheses — only trailing ones", () => {
+    // "(combo)" in the middle followed by more text — not a trailing group.
+    const result = splitItem("Foo (combo) Platter");
+    expect(result.name).toBe("Foo (combo) Platter");
+    expect(result.description).toBeUndefined();
+  });
+
+  it("handles a simple name with no whitespace before the parenthesis", () => {
+    const result = splitItem("Hummus(chickpea dip)");
+    expect(result.name).toBe("Hummus");
+    expect(result.description).toBe("chickpea dip");
+  });
+});
 
 // ─── parseCatalog ────────────────────────────────────────────────────────────
 
