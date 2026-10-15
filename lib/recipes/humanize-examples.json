@@ -1,0 +1,51 @@
+[
+  {
+    "context": "Shop: Yianni's Grill\nItem: Greek Souvlaki\nVoice: Be specific about one concrete detail — texture, timing, temperature, or size.\nLength: Write 2-3 sentences.\nStars: 5",
+    "draft": "When I ordered the Greek Souvlaki, the aroma of grilled meat drew me in right away. The skewers were charred, but it was the rice that I found myself hesitating to leave behind due to its fragrant herbs. That generous portion made me consider asking for a second serving instead of stopping at just one bite.",
+    "issues": [
+      "roundabout: 'it was the rice that I found myself hesitating'",
+      "filler: 'due to'",
+      "contradiction: the portion was generous, which should make you want more, not consider stopping"
+    ],
+    "text": "The Greek Souvlaki skewers had a good char. The rice was packed with herbs and I kept picking at it long after finishing the skewers. Big portion."
+  },
+  {
+    "context": "Shop: Harbor House\nVoice: Be direct and punchy. Short observations only.\nLength: Write 2-3 sentences.\nStars: 5",
+    "draft": "The calamari portion was noticeably larger this time, offering a more generous serving than during my last visit. Crispy and well-seasoned, it paired nicely with the chipotle aioli for a satisfying start.",
+    "issues": [
+      "trailing -ing repeat: 'offering a more generous serving' restates 'larger this time'",
+      "fronted-adjective opener: 'Crispy and well-seasoned, it...'",
+      "banned filler: 'nicely'",
+      "generic closer: 'for a satisfying start'"
+    ],
+    "text": "The calamari was bigger than last time. It came out crispy, and the chipotle aioli worked well with it."
+  },
+  {
+    "context": "Shop: Studio Ten Salon\nVoice: Be direct and factual.\nLength: Write 2-3 sentences.\nStars: 5",
+    "draft": "The cut was incredibly precise and my stylist was meticulous in her approach. It's not just about the haircut — it's about the seamless experience from start to finish.",
+    "issues": [
+      "filler: 'incredibly'",
+      "Tier 2 vocabulary: 'meticulous', 'seamless'",
+      "'not just X, it's Y' pattern",
+      "em dash",
+      "banned closer: 'from start to finish'"
+    ],
+    "text": "The cut was precise. My stylist worked through each section carefully and the result looked clean."
+  },
+  {
+    "context": "Shop: AutoFix Garage\nVoice: State what happened. Observations, not opinions.\nLength: Write 2-3 sentences.\nStars: 5",
+    "draft": "The oil change was completed in about 30 minutes. Additionally, the tech took a few minutes to check the brakes, highlighting that they still had plenty of life left. It's worth noting the waiting area was clean.",
+    "issues": [
+      "transition: 'Additionally'",
+      "superficial -ing phrase: 'highlighting that'",
+      "hedge: 'It's worth noting'"
+    ],
+    "text": "The oil change took about 30 minutes. The tech checked the brakes and said they were fine. The waiting area was clean."
+  },
+  {
+    "context": "Shop: Corner Bakery\nVoice: Say the bare minimum. No extras, no color. Just what is essential.\nLength: Write exactly 2 sentences.\nStars: 4",
+    "draft": "Got the sourdough. Dense crumb, good crust.",
+    "issues": [],
+    "text": "Got the sourdough. Dense crumb, good crust."
+  }
+]

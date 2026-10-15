@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { buildHumanizePrompt, type HumanizeContext } from "./humanize-prompt";
+import EXAMPLES from "./recipes/humanize-examples.json";
 
 const BASE_CTX: HumanizeContext = {
   shopName: "Joe's Pizza",
@@ -8,55 +9,160 @@ const BASE_CTX: HumanizeContext = {
   lengthInstruction: "Length: Write 2-3 sentences.",
 };
 
+// With the new structure: system + 5 example pairs (10 turns) + 1 final user = 12 messages.
+const EXAMPLE_COUNT = EXAMPLES.length; // 5
+const TOTAL_MESSAGES = 1 + EXAMPLE_COUNT * 2 + 1; // 12
+
 describe("buildHumanizePrompt", () => {
-  it("returns exactly two messages — system then user", () => {
+  // ─── Message structure ──────────────────────────────────────────────────────
+
+  it("returns the right number of messages: system + example pairs + final user", () => {
     const msgs = buildHumanizePrompt("Great pizza.", BASE_CTX);
-    expect(msgs).toHaveLength(2);
+    expect(msgs).toHaveLength(TOTAL_MESSAGES);
+  });
+
+  it("first message is the system message", () => {
+    const msgs = buildHumanizePrompt("Draft.", BASE_CTX);
     expect(msgs[0].role).toBe("system");
-    expect(msgs[1].role).toBe("user");
   });
 
-  it("puts the draft text in the user message", () => {
+  it("example turns follow the system message and alternate user/assistant", () => {
+    const msgs = buildHumanizePrompt("Draft.", BASE_CTX);
+    // Messages 1..10 are the 5 example pairs.
+    for (let i = 0; i < EXAMPLE_COUNT; i++) {
+      expect(msgs[1 + i * 2].role).toBe("user");
+      expect(msgs[2 + i * 2].role).toBe("assistant");
+    }
+  });
+
+  it("last message is a user message containing the draft text", () => {
     const msgs = buildHumanizePrompt("The crust was good.", BASE_CTX);
-    expect(msgs[1].content).toBe("The crust was good.");
+    const last = msgs[msgs.length - 1];
+    expect(last.role).toBe("user");
+    expect(last.content).toContain("The crust was good.");
   });
 
-  it("includes the voice instruction in the system message", () => {
+  // ─── Static prefix (cache friendliness) ────────────────────────────────────
+
+  it("all messages except the last are identical for different contexts", () => {
+    const msgsA = buildHumanizePrompt("Draft A.", BASE_CTX);
+    const msgsB = buildHumanizePrompt("Draft B.", {
+      ...BASE_CTX,
+      shopName: "Other Shop",
+      assignedItem: "Shawarma",
+      starIntent: 4,
+    });
+    const prefixA = msgsA.slice(0, -1);
+    const prefixB = msgsB.slice(0, -1);
+    expect(prefixA).toEqual(prefixB);
+  });
+
+  // ─── System message content ─────────────────────────────────────────────────
+
+  it("system message includes the full Tier 1 vocabulary list", () => {
+    const sys = buildHumanizePrompt("Draft.", BASE_CTX)[0].content;
+    expect(sys).toContain("delve");
+    expect(sys).toContain("tapestry");
+    expect(sys).toContain("paradigm shift");
+    expect(sys).toContain("leverage");
+    expect(sys).toContain("myriad");
+    expect(sys).toContain("streamline");
+  });
+
+  it("system message includes Tier 2 vocabulary list", () => {
+    const sys = buildHumanizePrompt("Draft.", BASE_CTX)[0].content;
+    expect(sys).toContain("seamless");
+    expect(sys).toContain("nuanced");
+    expect(sys).toContain("transformative");
+    expect(sys).toContain("unprecedented");
+  });
+
+  it("system message includes significance inflation words", () => {
+    const sys = buildHumanizePrompt("Draft.", BASE_CTX)[0].content;
+    expect(sys).toContain("testament");
+    expect(sys).toContain("pivotal");
+    expect(sys).toContain("nestled");
+    expect(sys).toContain("showcasing");
+  });
+
+  it("system message includes the generation ban list", () => {
+    const sys = buildHumanizePrompt("Draft.", BASE_CTX)[0].content;
+    expect(sys).toContain("highly recommend");
+    expect(sys).toContain("I appreciated");
+    expect(sys).toContain("paired with");
+  });
+
+  it("system message names the voice-wins-over-soul conflict rule", () => {
+    const sys = buildHumanizePrompt("Draft.", BASE_CTX)[0].content;
+    expect(sys).toContain("Voice instruction overrides Pass 8");
+  });
+
+  it("system message includes the JSON output format with issues field", () => {
+    const sys = buildHumanizePrompt("Draft.", BASE_CTX)[0].content;
+    expect(sys).toContain('"issues"');
+    expect(sys).toContain('"text"');
+    expect(sys).toContain("JSON");
+  });
+
+  // ─── Final user message content ─────────────────────────────────────────────
+
+  it("final user message includes the voice instruction", () => {
     const msgs = buildHumanizePrompt("Draft.", BASE_CTX);
-    expect(msgs[0].content).toContain("Voice: Be direct and factual.");
+    expect(msgs[msgs.length - 1].content).toContain("Voice: Be direct and factual.");
   });
 
-  it("includes the length instruction in the system message", () => {
+  it("final user message includes the length instruction", () => {
     const msgs = buildHumanizePrompt("Draft.", BASE_CTX);
-    expect(msgs[0].content).toContain("Length: Write 2-3 sentences.");
+    expect(msgs[msgs.length - 1].content).toContain("Length: Write 2-3 sentences.");
   });
 
-  it("includes the shop name in the system message", () => {
+  it("final user message includes the shop name", () => {
     const msgs = buildHumanizePrompt("Draft.", BASE_CTX);
-    expect(msgs[0].content).toContain("Joe's Pizza");
+    expect(msgs[msgs.length - 1].content).toContain("Joe's Pizza");
   });
 
-  it("includes the assigned item line when assignedItem is provided", () => {
+  it("final user message includes the star intent", () => {
+    const msgs = buildHumanizePrompt("Draft.", { ...BASE_CTX, starIntent: 4 });
+    expect(msgs[msgs.length - 1].content).toContain("Stars: 4");
+  });
+
+  it("final user message includes the assigned item when provided", () => {
     const ctx = { ...BASE_CTX, assignedItem: "Greek Souvlaki" };
     const msgs = buildHumanizePrompt("Draft.", ctx);
-    expect(msgs[0].content).toContain("Greek Souvlaki");
+    expect(msgs[msgs.length - 1].content).toContain("Greek Souvlaki");
   });
 
-  it("omits the assigned item line when no assignedItem", () => {
+  it("final user message omits the item line when no assignedItem", () => {
     const msgs = buildHumanizePrompt("Draft.", BASE_CTX);
-    // BASE_CTX has no assignedItem — no item preservation line should appear
-    expect(msgs[0].content).not.toContain("assigned item");
+    expect(msgs[msgs.length - 1].content).not.toContain("Item:");
   });
 
-  it("asks for JSON { text } output shape", () => {
+  // ─── Example turns validity ─────────────────────────────────────────────────
+
+  it("every example assistant turn parses as valid JSON with a non-empty text field", () => {
     const msgs = buildHumanizePrompt("Draft.", BASE_CTX);
-    expect(msgs[0].content).toContain('"text"');
-    expect(msgs[0].content).toContain("JSON");
+    for (let i = 0; i < EXAMPLE_COUNT; i++) {
+      const assistantMsg = msgs[2 + i * 2];
+      expect(assistantMsg.role).toBe("assistant");
+      const parsed = JSON.parse(assistantMsg.content) as { issues: string[]; text: string };
+      expect(typeof parsed.text).toBe("string");
+      expect(parsed.text.trim().length).toBeGreaterThan(0);
+    }
   });
 
-  it("includes the star intent in the system message", () => {
-    const ctx = { ...BASE_CTX, starIntent: 4 };
-    const msgs = buildHumanizePrompt("Draft.", ctx);
-    expect(msgs[0].content).toContain("4-star");
+  it("no example assistant text contains an exclamation mark or em dash", () => {
+    const msgs = buildHumanizePrompt("Draft.", BASE_CTX);
+    for (let i = 0; i < EXAMPLE_COUNT; i++) {
+      const parsed = JSON.parse(msgs[2 + i * 2].content) as { text: string };
+      expect(parsed.text).not.toContain("!");
+      expect(parsed.text).not.toContain("—");
+    }
+  });
+
+  it("the unchanged example has an empty issues array and identical text", () => {
+    // The last example in the JSON is the 'already human' one.
+    const lastExample = EXAMPLES[EXAMPLES.length - 1];
+    expect(lastExample.issues).toHaveLength(0);
+    expect(lastExample.text).toBe(lastExample.draft);
   });
 });

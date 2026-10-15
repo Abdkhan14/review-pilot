@@ -9,7 +9,7 @@ import VOICES_JSON from "./recipes/voices.json";
 import OPENERS_JSON from "./recipes/openers.json";
 import { businessKind } from "./business-kind";
 
-export type PromptMessage = { role: "system" | "user"; content: string };
+export type PromptMessage = { role: "system" | "user" | "assistant"; content: string };
 export type Angle = { label: string; pick: string };
 
 export type BuildPromptInput = {

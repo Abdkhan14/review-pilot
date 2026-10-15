@@ -96,14 +96,14 @@ describe("generateDrafts", () => {
     expect(mockCreate.mock.calls[2][0].messages).toEqual(SLOTS[2].messages);
   });
 
-  it("passes the generated draft text to the edit call as the user message", async () => {
+  it("passes the generated draft text in the last message of the edit call", async () => {
     stubCreates(DRAFT_A, DRAFT_B, DRAFT_C, EDIT_A, EDIT_B, EDIT_C);
     await generateDrafts(SLOTS);
-    // Edit call for slot 0 (call index 3): user message should be the generated text
-    expect(mockCreate.mock.calls[3][0].messages[1]).toMatchObject({
-      role: "user",
-      content: "Great pizza!",
-    });
+    // Edit call for slot 0 is call index 3. The last message is the per-draft user message.
+    const messages = mockCreate.mock.calls[3][0].messages;
+    const lastMsg = messages[messages.length - 1];
+    expect(lastMsg.role).toBe("user");
+    expect(lastMsg.content).toContain("Great pizza!");
   });
 
   it("returns the edited text when the edit call succeeds", async () => {
@@ -111,6 +111,13 @@ describe("generateDrafts", () => {
       DRAFT_A, DRAFT_B, DRAFT_C,
       editJson("Good pizza."), EDIT_B, EDIT_C,
     );
+    const drafts = await generateDrafts(SLOTS);
+    expect(drafts[0].text).toBe("Good pizza.");
+  });
+
+  it("returns edited text when the edit response includes an issues field", async () => {
+    const editWithIssues = JSON.stringify({ issues: ["filler: 'due to'"], text: "Good pizza." });
+    stubCreates(DRAFT_A, DRAFT_B, DRAFT_C, editWithIssues, EDIT_B, EDIT_C);
     const drafts = await generateDrafts(SLOTS);
     expect(drafts[0].text).toBe("Good pizza.");
   });
