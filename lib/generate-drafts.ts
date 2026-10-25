@@ -1,5 +1,5 @@
 import "server-only";
-import OpenAI from "openai";
+import OpenAI, { NotFoundError } from "openai";
 import type { PromptMessage } from "./prompt-builder";
 import { buildHumanizePrompt, type HumanizeContext } from "./humanize-prompt";
 
@@ -18,6 +18,66 @@ function getClient(): OpenAI {
   const key = process.env.OPENAI_API_KEY;
   if (!key) throw new Error("OPENAI_API_KEY env var is not set");
   return new OpenAI({ apiKey: key });
+}
+
+// Module-level set of confirmed-dead model IDs so a warm serverless function
+// instance doesn't pay for a 404 round trip on every subsequent request.
+const deadModels = new Set<string>();
+
+/** @internal exported only for test teardown */
+export function _resetDeadModels(): void {
+  deadModels.clear();
+}
+
+/**
+ * Returns the ordered list of models to try for both the generate and edit
+ * calls: [OPENAI_MODEL, ...OPENAI_FALLBACK_MODELS]. Defaults to gpt-5.6-luna
+ * with a gpt-5.4-mini fallback. Every model in the chain must accept the same
+ * request params (temperature, penalties, reasoning_effort "none").
+ */
+function getModelChain(): string[] {
+  const primary = process.env.OPENAI_MODEL || "gpt-5.6-luna";
+  const fallbacks = (process.env.OPENAI_FALLBACK_MODELS || "gpt-5.4-mini")
+    .split(",")
+    .map((m) => m.trim())
+    .filter(Boolean);
+  return [primary, ...fallbacks];
+}
+
+/**
+ * Calls client.chat.completions.create, walking the model list on NotFoundError
+ * (retired / non-existent model). Other errors are rethrown immediately.
+ * Dead models are cached so a warm function skips them without a network call.
+ * Throws GenerationError when all models in the chain are exhausted.
+ */
+async function completeWithFallback(
+  client: OpenAI,
+  params: Omit<OpenAI.Chat.ChatCompletionCreateParamsNonStreaming, "model">,
+  models: string[],
+): Promise<OpenAI.Chat.Completions.ChatCompletion> {
+  const remaining = models.filter((m) => !deadModels.has(m));
+
+  for (let i = 0; i < remaining.length; i++) {
+    const model = remaining[i];
+    try {
+      return await client.chat.completions.create({ ...params, model });
+    } catch (err) {
+      if (err instanceof NotFoundError) {
+        deadModels.add(model);
+        const next = remaining[i + 1];
+        if (next) {
+          console.error(`[openai] model ${model} unavailable, falling back to ${next}`);
+        } else {
+          console.error(`[openai] model ${model} unavailable, no more fallbacks`);
+        }
+        // continue to next model in loop
+      } else {
+        throw err;
+      }
+    }
+  }
+
+  throw new GenerationError("all models in fallback chain are unavailable");
 }
 
 function parseDraft(content: string | null | undefined, idx: number): DraftReview {
@@ -43,14 +103,18 @@ function parseDraft(content: string | null | undefined, idx: number): DraftRevie
 
 async function generateOneDraft(messages: PromptMessage[], idx: number): Promise<DraftReview> {
   const client = getClient();
-  const completion = await client.chat.completions.create({
-    model: process.env.OPENAI_MODEL ?? "gpt-4.1-nano",
-    messages,
-    response_format: { type: "json_object" },
-    temperature: 0.9,
-    frequency_penalty: 0.5,
-    presence_penalty: 0.3,
-  });
+  const completion = await completeWithFallback(
+    client,
+    {
+      messages,
+      response_format: { type: "json_object" },
+      temperature: 0.9,
+      frequency_penalty: 0.5,
+      presence_penalty: 0.3,
+      reasoning_effort: "none",
+    },
+    getModelChain(),
+  );
   const content = completion.choices[0]?.message?.content;
   return parseDraft(content, idx);
 }
@@ -68,9 +132,8 @@ function countSentences(text: string): number {
 /**
  * Runs the humanize editor pass on a single draft.
  *
- * Uses OPENAI_EDIT_MODEL if set, otherwise falls back to OPENAI_MODEL, then
- * "gpt-4.1-nano". Temperature is lower than generation (0.4) so the edit is
- * focused and conservative.
+ * Uses the same model chain as generation. Temperature is lower than
+ * generation (0.4) so the edit is focused and conservative.
  *
  * Falls back to the original draft (rather than failing) when:
  * - DRAFT_EDIT_PASS=off (kill switch)
@@ -87,17 +150,19 @@ async function humanizeDraft(draft: DraftReview, ctx: HumanizeContext): Promise<
 
   const client = getClient();
   const messages = buildHumanizePrompt(draft.text, ctx);
-  const model =
-    process.env.OPENAI_EDIT_MODEL ?? process.env.OPENAI_MODEL ?? "gpt-4.1-nano";
 
   let content: string | null | undefined;
   try {
-    const completion = await client.chat.completions.create({
-      model,
-      messages,
-      response_format: { type: "json_object" },
-      temperature: 0.4,
-    });
+    const completion = await completeWithFallback(
+      client,
+      {
+        messages,
+        response_format: { type: "json_object" },
+        temperature: 0.4,
+        reasoning_effort: "none",
+      },
+      getModelChain(),
+    );
     content = completion.choices[0]?.message?.content;
   } catch (err) {
     if (debug) console.info(`[humanize] id=${draft.id} fallback=api-error error=${String(err)}`);
