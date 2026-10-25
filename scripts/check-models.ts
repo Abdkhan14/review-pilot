@@ -2,9 +2,9 @@
  * check-models.ts
  *
  * Verifies that every OpenAI model configured in env vars exists on the API
- * and has no shutdown date within the next 60 days. Run this script locally
- * or in CI (see .github/workflows/model-check.yml) to get advance warning
- * before a deprecation causes a production outage.
+ * and has no shutdown date within the next 60 days. Run it with
+ * `npm run check-models` to get advance warning before a deprecation causes
+ * a production outage.
  *
  * Reads:
  *   OPENAI_API_KEY        (required)
@@ -37,7 +37,7 @@ async function main(): Promise<void> {
 
   const client = new OpenAI({ apiKey });
 
-  // `||` (not `??`) so empty strings from unset GitHub secrets use the defaults.
+  // `||` (not `??`) so empty values like `OPENAI_MODEL=` use the defaults.
   const primary = process.env.OPENAI_MODEL || "gpt-5.6-luna";
   const fallbacks = (process.env.OPENAI_FALLBACK_MODELS || "gpt-5.4-mini")
     .split(",")
