@@ -1,21 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { verifySession } from "@/lib/auth";
-import { ADMIN_COOKIE } from "@/lib/session-cookie";
 import { resolveAdminGate } from "@/lib/admin-gate";
+import { hasAdminCookie } from "@/lib/admin-cookie";
 
 export async function proxy(req: NextRequest) {
-  const token = req.cookies.get(ADMIN_COOKIE)?.value;
-
-  let cookieValid = false;
-  if (token) {
-    try {
-      await verifySession(token);
-      cookieValid = true;
-    } catch {
-      cookieValid = false;
-    }
-  }
-
+  const cookieValid = await hasAdminCookie(req);
   const result = resolveAdminGate(req.nextUrl.pathname, cookieValid);
 
   if (result.action === "redirect") {
