@@ -1,7 +1,10 @@
 import Image from "next/image";
 
+import { layoutClass } from "@/app/tokens";
+
 export default function Home() {
   return (
+    <div className={layoutClass.column}>
     <main>
       {/* Wordmark */}
       <p className="text-xs font-semibold tracking-widest uppercase text-zinc-400 mb-12">
@@ -68,5 +71,6 @@ export default function Home() {
         </div>
       </section>
     </main>
+    </div>
   );
 }
