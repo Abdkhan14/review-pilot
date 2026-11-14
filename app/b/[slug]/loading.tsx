@@ -1,4 +1,4 @@
-import { GenerateProgress } from "./_components/DraftsSkeleton";
+import { GenerateProgress } from "@/components/scan/DraftsSkeleton";
 
 export default function Loading() {
   return (

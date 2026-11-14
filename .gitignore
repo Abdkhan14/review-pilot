@@ -38,3 +38,6 @@ next-env.d.ts
 # prisma
 prisma/**/*.db
 prisma/**/*.db-journal
+
+# local planning notes
+self-serve-plan.md

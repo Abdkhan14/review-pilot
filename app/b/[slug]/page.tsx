@@ -3,8 +3,8 @@ import { findBySlug } from "@/lib/business-repo";
 import { db } from "@/lib/db";
 import { buildWriteReviewUrl } from "@/lib/write-review-url";
 import { todayCount, isDailyCapped, nextUtcMidnightMs } from "@/lib/handoff";
-import { ScanDrafts } from "./_components/ScanDrafts";
-import { DailyCap } from "./_components/DailyCap";
+import { ScanDrafts } from "@/components/scan/ScanDrafts";
+import { DailyCap } from "@/components/scan/DailyCap";
 
 /** Do not prerender — slug lookup must run against Turso on each scan. */
 export const dynamic = "force-dynamic";
