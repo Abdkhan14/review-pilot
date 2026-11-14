@@ -1,5 +1,5 @@
 import { buildPrompt, anglesForPrimaryType, voiceInstruction, lengthInstruction } from "@/lib/prompt-builder";
-import { generateDrafts, type DraftSlot } from "@/lib/generate-drafts";
+import { generateDrafts, type DraftSlot, type DraftReview } from "@/lib/generate-drafts";
 import { parseCatalog, sampleItems, splitItem, DRAFT_COUNT } from "@/lib/catalog-items";
 import { sampleRecipeTrio, type ReviewRecipe } from "@/lib/review-recipe";
 import { applyTexture, applyTypo } from "@/lib/review-texture";
@@ -7,10 +7,10 @@ import { polishDraft } from "@/lib/review-polish";
 import type { PlaceSnapshot } from "@/lib/place-snapshot";
 import type { HumanizeContext } from "@/lib/humanize-prompt";
 
+export type { DraftReview };
+
 const DRAFT_IDS = ["a", "b", "c"] as const;
 type DraftId = (typeof DRAFT_IDS)[number];
-
-export type ReviewDraft = { id: string; text: string };
 
 /** Sample catalog items and return the notes and item names for slot building. */
 export function pickCatalogItems(rawNotes: string | undefined): {
@@ -63,10 +63,10 @@ export function buildSlots(
 
 /** Apply post-processing passes to a single generated draft. */
 export function finishDraft(
-  draft: ReviewDraft,
+  draft: DraftReview,
   recipe: ReviewRecipe,
   protectedStrings: string[],
-): ReviewDraft {
+): DraftReview {
   let text = polishDraft(draft.text, protectedStrings);
   if (recipe.texture !== "clean") text = applyTexture(text, recipe.texture);
   if (recipe.typo !== "clean") text = applyTypo(text, recipe.typo, protectedStrings);
@@ -77,7 +77,7 @@ export function finishDraft(
 export async function writeReviewDrafts(
   snapshot: PlaceSnapshot,
   rawNotes: string | undefined,
-): Promise<ReviewDraft[]> {
+): Promise<DraftReview[]> {
   const { promptNotes, itemNames } = pickCatalogItems(rawNotes);
   const { slots, recipes } = buildSlots(snapshot, itemNames, promptNotes);
   const splitItems = itemNames.map((n) => splitItem(n));

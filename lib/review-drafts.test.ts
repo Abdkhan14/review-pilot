@@ -14,7 +14,7 @@ vi.mock("@/lib/review-polish", () => ({
 }));
 
 import { generateDrafts } from "@/lib/generate-drafts";
-import { pickCatalogItems, buildSlots, writeReviewDrafts } from "./review-drafts";
+import { pickCatalogItems, buildSlots, writeReviewDrafts, type DraftReview } from "./review-drafts";
 import type { PlaceSnapshot } from "./place-snapshot";
 
 const mockGenerateDrafts = vi.mocked(generateDrafts);
@@ -27,10 +27,10 @@ const SNAPSHOT: PlaceSnapshot = {
   fetchedAt: new Date().toISOString(),
 };
 
-const STUB_DRAFTS = [
-  { id: "a", text: "Great pizza!" },
-  { id: "b", text: "Loved the crust." },
-  { id: "c", text: "Will be back." },
+const STUB_DRAFTS: DraftReview[] = [
+  { id: "a", angle: "food", text: "Great pizza!" },
+  { id: "b", angle: "service", text: "Loved the crust." },
+  { id: "c", angle: "vibe", text: "Will be back." },
 ];
 
 beforeEach(() => {
