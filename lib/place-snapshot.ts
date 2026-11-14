@@ -33,6 +33,25 @@ interface RawPlace {
   googleMapsLinks?: { writeAReviewUri?: string };
 }
 
+/** Build a minimal PlaceSnapshot from a stored business row. */
+export function snapshotFromBusiness(business: {
+  details: string | null;
+  placeId: string;
+  name: string;
+  writeReviewUrl: string | null;
+}): PlaceSnapshot {
+  if (business.details) {
+    return JSON.parse(business.details) as PlaceSnapshot;
+  }
+  return {
+    placeId: business.placeId,
+    name: business.name,
+    address: "",
+    writeReviewUrl: business.writeReviewUrl ?? "",
+    fetchedAt: new Date().toISOString(),
+  };
+}
+
 export function normalizePlaceSnapshot(raw: RawPlace): PlaceSnapshot {
   const writeReviewUrl = raw.googleMapsLinks?.writeAReviewUri;
   if (!writeReviewUrl) {

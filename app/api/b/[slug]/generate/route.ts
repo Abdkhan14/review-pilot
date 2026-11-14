@@ -2,38 +2,11 @@ import "server-only";
 import { NextRequest, NextResponse } from "next/server";
 import { findBySlug } from "@/lib/business-repo";
 import { db } from "@/lib/db";
-import { buildPrompt, anglesForPrimaryType, voiceInstruction, lengthInstruction } from "@/lib/prompt-builder";
-import { generateDrafts, GenerationError, type DraftSlot } from "@/lib/generate-drafts";
 import { ipFromHeaders, rateLimitKey, checkRateLimit } from "@/lib/rate-limit";
-import { parseCatalog, sampleItems, splitItem, DRAFT_COUNT } from "@/lib/catalog-items";
 import { todayCount, isDailyCapped, nextUtcMidnightMs } from "@/lib/handoff";
-import { sampleRecipeTrio } from "@/lib/review-recipe";
-import { applyTexture, applyTypo } from "@/lib/review-texture";
-import { polishDraft } from "@/lib/review-polish";
-import type { PlaceSnapshot } from "@/lib/place-snapshot";
-import type { HumanizeContext } from "@/lib/humanize-prompt";
-
-const DRAFT_IDS = ["a", "b", "c"] as const;
-type DraftId = (typeof DRAFT_IDS)[number];
-
-function snapshotFromBusiness(business: {
-  details: string | null;
-  placeId: string;
-  name: string;
-  writeReviewUrl: string | null;
-}): PlaceSnapshot {
-  if (business.details) {
-    return JSON.parse(business.details) as PlaceSnapshot;
-  }
-  // Minimal fallback when no details snapshot has been stored yet.
-  return {
-    placeId: business.placeId,
-    name: business.name,
-    address: "",
-    writeReviewUrl: business.writeReviewUrl ?? "",
-    fetchedAt: new Date().toISOString(),
-  };
-}
+import { snapshotFromBusiness } from "@/lib/place-snapshot";
+import { writeReviewDrafts } from "@/lib/review-drafts";
+import { GenerationError } from "@/lib/generate-drafts";
 
 export async function POST(
   _req: NextRequest,
@@ -66,74 +39,9 @@ export async function POST(
   }
 
   const snapshot = snapshotFromBusiness(business);
-  const rawNotes = business.customInstructions ?? undefined;
-
-  // Parse the catalog once. Send only prose to the model — not the full item
-  // list — to keep each prompt short and prevent gravitating to salient entries.
-  let promptNotes: string | undefined = rawNotes;
-  let itemNames: string[] = [];
-
-  if (rawNotes) {
-    const catalog = parseCatalog(rawNotes);
-    const names = sampleItems(catalog, DRAFT_COUNT);
-    if (names.length > 0) {
-      itemNames = names;
-      promptNotes = catalog.prose || undefined;
-    }
-  }
-
-  const angles = anglesForPrimaryType(snapshot.primaryType);
-  const recipes = sampleRecipeTrio(Math.random, snapshot.primaryType);
-
-  // Split each raw item string into name + optional description so that only
-  // the name is used as the assigned item (and as a protected string). The
-  // description is passed separately so the model has context without being
-  // tempted to read it back verbatim.
-  const splitItems = itemNames.map((n) => splitItem(n));
-
-  const slots: DraftSlot[] = DRAFT_IDS.map((id, i) => {
-    const recipe = recipes[i];
-    const split = splitItems[i];
-    const assignedItem = split?.name || undefined;
-    const itemContext = split?.description || undefined;
-    const messages = buildPrompt({
-      id: id as DraftId,
-      snapshot,
-      angle: angles[i],
-      recipe,
-      assignedItem,
-      itemContext,
-      customInstructions: promptNotes,
-    });
-    const edit: HumanizeContext = {
-      shopName: snapshot.name,
-      assignedItem,
-      starIntent: 5,
-      voiceInstruction: voiceInstruction(recipe.voice),
-      lengthInstruction: lengthInstruction(recipe.length),
-    };
-    return { messages, edit };
-  });
 
   try {
-    const drafts = await generateDrafts(slots);
-
-    // For every draft: apply all AI-tell polish passes (polishDraft) which
-    // strips stacked adjectives, intensifiers, banned closers, hashtags, and
-    // denylisted adverbs, and contracts expanded verb forms.
-    // Then apply a light grammar slip to at most one draft (applyTexture) and
-    // a rare one-word typo to a different draft (applyTypo).
-    const reviews = drafts.map((draft, i) => {
-      const recipe = recipes[i];
-      const assignedItem = splitItems[i]?.name;
-      const protectedStrings = [snapshot.name, ...(assignedItem ? [assignedItem] : [])];
-
-      let text = polishDraft(draft.text, protectedStrings);
-      if (recipe.texture !== "clean") text = applyTexture(text, recipe.texture);
-      if (recipe.typo !== "clean") text = applyTypo(text, recipe.typo, protectedStrings);
-      return text !== draft.text ? { ...draft, text } : draft;
-    });
-
+    const reviews = await writeReviewDrafts(snapshot, business.customInstructions ?? undefined);
     return NextResponse.json({ reviews, writeReviewUrl: business.writeReviewUrl });
   } catch (err) {
     if (err instanceof GenerationError) {
