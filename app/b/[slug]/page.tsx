@@ -2,7 +2,7 @@ import { notFound, redirect } from "next/navigation";
 import { findBySlug } from "@/lib/business-repo";
 import { db } from "@/lib/db";
 import { buildWriteReviewUrl } from "@/lib/write-review-url";
-import { todayCount, isDailyCapped, nextUtcMidnightMs } from "@/lib/handoff";
+import { todayCount, isDailyCapped, nextUtcMidnightMs, DAILY_HANDOFF_LIMIT } from "@/lib/handoff";
 import { ScanDrafts } from "@/components/scan/ScanDrafts";
 import { DailyCap } from "@/components/scan/DailyCap";
 
@@ -40,7 +40,7 @@ export default async function ScanPage({
     return (
       <main>
         <h1 className="pb-6 text-lg font-semibold">Reviews paused for today</h1>
-        <DailyCap retryAtMs={nextUtcMidnightMs(now)} />
+        <DailyCap retryAtMs={nextUtcMidnightMs(now)} limit={DAILY_HANDOFF_LIMIT} />
       </main>
     );
   }
@@ -50,7 +50,12 @@ export default async function ScanPage({
       <h1 className="pb-6 text-lg font-semibold">
         Pick a review to share
       </h1>
-      <ScanDrafts slug={slug} writeReviewUrl={googleUrl} testing={isTesting} />
+      <ScanDrafts
+        apiBase={`/api/b/${encodeURIComponent(slug)}/generate`}
+        handoffUrl={`/api/b/${encodeURIComponent(slug)}/handoff`}
+        writeReviewUrl={googleUrl}
+        testing={isTesting}
+      />
     </main>
   );
 }

@@ -9,7 +9,10 @@ import { stepIndexAt, progressPctAt, GENERATE_PROGRESS_MS } from "@/lib/generate
 type Draft = { id: string; text: string };
 
 type Props = {
-  slug: string;
+  /** Full generate endpoint URL, e.g. /api/b/{slug}/generate */
+  apiBase: string;
+  /** Optional handoff endpoint URL forwarded to DraftPicker. */
+  handoffUrl?: string;
   writeReviewUrl: string;
   testing?: boolean;
 };
@@ -19,7 +22,7 @@ type GenerateResponse = {
   writeReviewUrl?: string | null;
 };
 
-export function ScanDrafts({ slug, writeReviewUrl, testing = false }: Props) {
+export function ScanDrafts({ apiBase, handoffUrl, writeReviewUrl, testing = false }: Props) {
   const [drafts, setDrafts] = useState<Draft[]>([]);
   const [url, setUrl] = useState(writeReviewUrl);
   const [loading, setLoading] = useState(true);
@@ -49,9 +52,7 @@ export function ScanDrafts({ slug, writeReviewUrl, testing = false }: Props) {
 
     async function load() {
       try {
-        const generateUrl = testing
-          ? `/api/b/${encodeURIComponent(slug)}/generate?testing=true`
-          : `/api/b/${encodeURIComponent(slug)}/generate`;
+        const generateUrl = testing ? `${apiBase}?testing=true` : apiBase;
         const res = await api.post<GenerateResponse>(generateUrl);
         if (cancelled) return;
         setDrafts(res.data.reviews);
@@ -74,7 +75,7 @@ export function ScanDrafts({ slug, writeReviewUrl, testing = false }: Props) {
     return () => {
       cancelled = true;
     };
-  }, [slug, attempt]);
+  }, [apiBase, attempt]);
 
   if (loading) {
     return (
@@ -91,7 +92,7 @@ export function ScanDrafts({ slug, writeReviewUrl, testing = false }: Props) {
     <DraftPicker
       drafts={drafts}
       writeReviewUrl={url}
-      slug={slug}
+      handoffUrl={handoffUrl}
       testing={testing}
       generateFailed={generateFailed}
       rateLimited={rateLimited}

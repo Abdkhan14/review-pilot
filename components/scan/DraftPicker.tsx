@@ -21,13 +21,14 @@ type Draft = { id: string; text: string };
 type Props = {
   drafts: Draft[];
   writeReviewUrl: string;
-  slug: string;
+  /** Handoff endpoint URL. Omit on pages that don't track handoffs. */
+  handoffUrl?: string;
   testing?: boolean;
   generateFailed?: boolean;
   rateLimited?: boolean;
 };
 
-export function DraftPicker({ drafts, writeReviewUrl, slug, testing = false, generateFailed = false, rateLimited = false }: Props) {
+export function DraftPicker({ drafts, writeReviewUrl, handoffUrl, testing = false, generateFailed = false, rateLimited = false }: Props) {
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
   const visibleDrafts = copiedId
@@ -38,8 +39,8 @@ export function DraftPicker({ drafts, writeReviewUrl, slug, testing = false, gen
   const linkLabel = copiedId ? "Go to Google Reviews" : "Skip to Google Reviews";
 
   function handleGoogleClick() {
-    if (copiedId && !testing) {
-      navigator.sendBeacon(`/api/b/${encodeURIComponent(slug)}/handoff`);
+    if (copiedId && !testing && handoffUrl) {
+      navigator.sendBeacon(handoffUrl);
     }
   }
 
