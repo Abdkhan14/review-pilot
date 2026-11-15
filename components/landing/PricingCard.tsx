@@ -1,13 +1,11 @@
 import { cn } from "@/lib/utils";
 
-type Feature = { text: string };
-
 type Props = {
   name: string;
   price: string;
   priceNote: string;
   blurb: string;
-  features: Feature[];
+  features: readonly string[];
   highlighted?: boolean;
   ctaSlot: React.ReactNode;
 };
@@ -44,7 +42,7 @@ export function PricingCard({
         {blurb}
       </p>
       <ul className="flex flex-col gap-2 flex-1">
-        {features.map(({ text }) => (
+        {features.map((text) => (
           <li key={text} className={cn("text-sm flex gap-2 items-start",
             highlighted ? "text-zinc-300" : "text-zinc-600")}>
             <span aria-hidden>✓</span>

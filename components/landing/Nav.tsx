@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 const NAV_LINKS = [
   { label: "How it works", href: "#how-it-works" },
   { label: "Pricing", href: "#pricing" },
@@ -12,9 +14,9 @@ type Props = {
 export function Nav({ contactSlot }: Props) {
   return (
     <nav className="flex items-center justify-between px-6 py-4 border-b border-zinc-200">
-      <a href="/" className="text-sm font-semibold tracking-widest uppercase text-zinc-900">
+      <Link href="/" className="text-sm font-semibold tracking-widest uppercase text-zinc-900">
         Review Pilot
-      </a>
+      </Link>
       <div className="flex items-center gap-6">
         <ul className="hidden sm:flex items-center gap-6 list-none m-0 p-0">
           {NAV_LINKS.map(({ label, href }) => (
