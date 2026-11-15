@@ -15,14 +15,27 @@ type Props = {
   handoffUrl?: string;
   writeReviewUrl: string;
   testing?: boolean;
+  /** Called after each successful generation with the response data. */
+  onGenerated?: (data: { triesLeft?: number }) => void;
+  /** When set, shows a "Try another set" button in the copied state.
+   *  Pass an empty string to hide the button (0 tries left). */
+  anotherSetLabel?: string;
 };
 
 type GenerateResponse = {
   reviews: Draft[];
   writeReviewUrl?: string | null;
+  triesLeft?: number;
 };
 
-export function ScanDrafts({ apiBase, handoffUrl, writeReviewUrl, testing = false }: Props) {
+export function ScanDrafts({
+  apiBase,
+  handoffUrl,
+  writeReviewUrl,
+  testing = false,
+  onGenerated,
+  anotherSetLabel,
+}: Props) {
   const [drafts, setDrafts] = useState<Draft[]>([]);
   const [url, setUrl] = useState(writeReviewUrl);
   const [loading, setLoading] = useState(true);
@@ -58,6 +71,7 @@ export function ScanDrafts({ apiBase, handoffUrl, writeReviewUrl, testing = fals
         setDrafts(res.data.reviews);
         if (res.data.writeReviewUrl) setUrl(res.data.writeReviewUrl);
         setGenerateFailed(false);
+        onGenerated?.({ triesLeft: res.data.triesLeft });
       } catch (err: unknown) {
         if (cancelled) return;
         const status = (err as { response?: { status?: number } })?.response
@@ -96,6 +110,8 @@ export function ScanDrafts({ apiBase, handoffUrl, writeReviewUrl, testing = fals
       testing={testing}
       generateFailed={generateFailed}
       rateLimited={rateLimited}
+      anotherSetLabel={anotherSetLabel}
+      onAnotherSet={() => setAttempt((n) => n + 1)}
     />
   );
 }
