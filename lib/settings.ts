@@ -12,11 +12,11 @@ export type AppLimits = {
 
 export const DEFAULT_LIMITS: AppLimits = {
   "assisted.dailyHandoffLimit": DAILY_HANDOFF_LIMIT,
-  "trial.generationLimit": 3,
-  "trial.handoffLimit": 1,
-  "demo.generationsPerPlace": 10,
-  "demo.createsPerIpPerDay": 3,
-  "demo.dailyGenerations": 50,
+  "trial.generationLimit": 5,
+  "trial.handoffLimit": 2,
+  "demo.generationsPerPlace": 3,
+  "demo.createsPerIpPerDay": 5,
+  "demo.dailyGenerations": 200,
 };
 
 /** Load all six runtime limit settings, falling back to defaults. */

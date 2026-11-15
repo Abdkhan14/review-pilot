@@ -5,29 +5,28 @@ vi.mock("@/lib/auth", () => ({
 }));
 
 import { verifySession } from "@/lib/auth";
-import { hasAdminCookie } from "./admin-cookie";
-import type { NextRequest } from "next/server";
+import { hasAdminCookie, type CookieReader } from "./admin-cookie";
 
 const mockVerify = vi.mocked(verifySession);
 
-function makeReq(token: string | undefined): NextRequest {
+function makeCookies(token: string | undefined): CookieReader {
   return {
-    cookies: { get: (name: string) => (name === "rp_admin" && token ? { value: token } : undefined) },
-  } as unknown as NextRequest;
+    get: (name: string) => (name === "rp_admin" && token ? { value: token } : undefined),
+  };
 }
 
 describe("hasAdminCookie", () => {
   it("returns false when no cookie is present", async () => {
-    expect(await hasAdminCookie(makeReq(undefined))).toBe(false);
+    expect(await hasAdminCookie(makeCookies(undefined))).toBe(false);
   });
 
   it("returns true when verifySession resolves", async () => {
     mockVerify.mockResolvedValue({ email: "admin@example.com" } as never);
-    expect(await hasAdminCookie(makeReq("valid-token"))).toBe(true);
+    expect(await hasAdminCookie(makeCookies("valid-token"))).toBe(true);
   });
 
   it("returns false when verifySession throws", async () => {
     mockVerify.mockRejectedValue(new Error("invalid"));
-    expect(await hasAdminCookie(makeReq("bad-token"))).toBe(false);
+    expect(await hasAdminCookie(makeCookies("bad-token"))).toBe(false);
   });
 });

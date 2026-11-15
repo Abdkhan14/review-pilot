@@ -1,0 +1,39 @@
+import Link from "next/link";
+import { GetStartedButton } from "./GetStartedButton";
+import { ContactButton } from "./ContactButton";
+
+const NAV_LINKS = [
+  { label: "Demo", href: "/#demo" },
+  { label: "Pricing", href: "/#pricing" },
+  { label: "FAQ", href: "/#faq" },
+] as const;
+
+type Props = {
+  selfServe: boolean;
+};
+
+export function Nav({ selfServe }: Props) {
+  return (
+    <nav
+      data-landing-nav
+      className="sticky top-0 z-40 flex items-center justify-between px-6 py-4 border-b border-zinc-200 bg-white/80 backdrop-blur"
+    >
+      <Link href="/" className="text-sm font-semibold tracking-widest uppercase text-zinc-900">
+        Review Pilot
+      </Link>
+      <div className="flex items-center gap-4">
+        <ul className="hidden sm:flex items-center gap-6 list-none m-0 p-0">
+          {NAV_LINKS.map(({ label, href }) => (
+            <li key={href}>
+              <a href={href} className="text-sm text-zinc-500 hover:text-zinc-900 transition-colors">
+                {label}
+              </a>
+            </li>
+          ))}
+        </ul>
+        <ContactButton />
+        <GetStartedButton selfServe={selfServe} label="Get started" />
+      </div>
+    </nav>
+  );
+}

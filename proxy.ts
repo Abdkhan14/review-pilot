@@ -3,7 +3,7 @@ import { resolveAdminGate } from "@/lib/admin-gate";
 import { hasAdminCookie } from "@/lib/admin-cookie";
 
 export async function proxy(req: NextRequest) {
-  const cookieValid = await hasAdminCookie(req);
+  const cookieValid = await hasAdminCookie(req.cookies);
   const result = resolveAdminGate(req.nextUrl.pathname, cookieValid);
 
   if (result.action === "redirect") {

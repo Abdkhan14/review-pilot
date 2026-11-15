@@ -9,5 +9,5 @@ import { hasAdminCookie } from "@/lib/admin-cookie";
 export async function requireAdmin(
   req: NextRequest
 ): Promise<NextResponse | null> {
-  return (await hasAdminCookie(req)) ? null : new NextResponse(null, { status: 401 });
+  return (await hasAdminCookie(req.cookies)) ? null : new NextResponse(null, { status: 401 });
 }
