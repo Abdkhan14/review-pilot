@@ -25,12 +25,21 @@ const FIELD_MASK = [
  * Calls Place Details (New) and returns a normalized snapshot.
  * Throws if the API key is missing, the response is non-2xx,
  * or writeAReviewUri is absent in the response.
+ *
+ * Pass sessionToken to close the autocomplete billing session that looked up
+ * this place, so the autocomplete and detail calls are billed as one session.
  */
-export async function fetchPlaceDetails(placeId: string): Promise<PlaceSnapshot> {
+export async function fetchPlaceDetails(
+  placeId: string,
+  sessionToken?: string,
+): Promise<PlaceSnapshot> {
   const key = process.env.GOOGLE_MAPS_API_KEY;
   if (!key) throw new Error("GOOGLE_MAPS_API_KEY env var is not set");
 
-  const url = `${PLACES_BASE}/${encodeURIComponent(placeId)}`;
+  const params = sessionToken
+    ? `?sessionToken=${encodeURIComponent(sessionToken)}`
+    : "";
+  const url = `${PLACES_BASE}/${encodeURIComponent(placeId)}${params}`;
   const res = await fetch(url, {
     headers: {
       "X-Goog-Api-Key": key,
