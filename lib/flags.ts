@@ -1,5 +1,4 @@
-import type { NextRequest } from "next/server";
-import { hasAdminCookie } from "@/lib/admin-cookie";
+import { hasAdminCookie, type CookieReader } from "@/lib/admin-cookie";
 
 function envOn(key: string): boolean {
   const val = process.env[key];
@@ -7,13 +6,13 @@ function envOn(key: string): boolean {
 }
 
 /** True when the new landing page is enabled or the caller is an admin. */
-export async function isNewLandingEnabled(req: NextRequest): Promise<boolean> {
-  return envOn("FF_NEW_LANDING") || hasAdminCookie(req);
+export async function isNewLandingEnabled(cookies: CookieReader): Promise<boolean> {
+  return envOn("FF_NEW_LANDING") || hasAdminCookie(cookies);
 }
 
 /** True when the self-serve flow is enabled or the caller is an admin. */
-export async function isSelfServeEnabled(req: NextRequest): Promise<boolean> {
-  return envOn("FF_SELF_SERVE") || hasAdminCookie(req);
+export async function isSelfServeEnabled(cookies: CookieReader): Promise<boolean> {
+  return envOn("FF_SELF_SERVE") || hasAdminCookie(cookies);
 }
 
 /**

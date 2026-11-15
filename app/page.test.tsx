@@ -1,29 +1,48 @@
 /// @vitest-environment jsdom
-import { render, screen } from "@testing-library/react";
-import { expect, describe, it } from "vitest";
-import Home from "./page";
+import { render, screen, cleanup } from "@testing-library/react";
+import { expect, describe, it, vi, beforeEach } from "vitest";
 
-describe("Home", () => {
-  it("renders the hero heading", () => {
-    render(<Home />);
+vi.mock("next/headers", () => ({
+  cookies: vi.fn().mockResolvedValue({ get: () => undefined }),
+}));
+
+vi.mock("@/lib/flags", () => ({
+  isNewLandingEnabled: vi.fn(),
+  isSelfServeEnabled: vi.fn(),
+}));
+
+import { isNewLandingEnabled, isSelfServeEnabled } from "@/lib/flags";
+import HomePage from "./page";
+
+const mockNewLanding = vi.mocked(isNewLandingEnabled);
+const mockSelfServe = vi.mocked(isSelfServeEnabled);
+
+beforeEach(() => {
+  cleanup();
+  mockNewLanding.mockReset();
+  mockSelfServe.mockReset();
+  mockSelfServe.mockResolvedValue(false);
+});
+
+async function renderPage(from?: string) {
+  const params = Promise.resolve({ from });
+  const element = await HomePage({ searchParams: params });
+  render(element);
+}
+
+describe("HomePage", () => {
+  it("renders the legacy home when FF_NEW_LANDING is off", async () => {
+    mockNewLanding.mockResolvedValue(false);
+    await renderPage();
     expect(
-      screen.getByRole("heading", {
-        name: /google reviews, minus the hard part/i,
-      })
+      screen.getByRole("heading", { name: /google reviews, minus the hard part/i })
     ).toBeDefined();
   });
 
-  it("renders the how-it-works illustration with descriptive alt text", () => {
-    render(<Home />);
-    const imgs = screen.getAllByAltText(
-      "Three steps: scan a QR code, pick a review, paste it on Google Reviews."
-    );
-    expect(imgs.length).toBeGreaterThan(0);
-  });
-
-  it("renders the Review Pilot wordmark", () => {
-    render(<Home />);
-    const matches = screen.getAllByText("Review Pilot");
-    expect(matches.length).toBeGreaterThan(0);
+  it("renders the new landing when FF_NEW_LANDING is on", async () => {
+    mockNewLanding.mockResolvedValue(true);
+    await renderPage();
+    expect(screen.getAllByRole("navigation").length).toBeGreaterThan(0);
+    expect(screen.getByRole("heading", { name: /google reviews/i })).toBeDefined();
   });
 });

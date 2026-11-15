@@ -6,11 +6,11 @@ vi.mock("@/lib/admin-cookie", () => ({
 
 import { hasAdminCookie } from "@/lib/admin-cookie";
 import { isNewLandingEnabled, isSelfServeEnabled, isViewer } from "./flags";
-import type { NextRequest } from "next/server";
+import type { CookieReader } from "./admin-cookie";
 
 const mockHasAdminCookie = vi.mocked(hasAdminCookie);
 
-const fakeReq = {} as NextRequest;
+const emptyCookies: CookieReader = { get: () => undefined };
 
 beforeEach(() => {
   mockHasAdminCookie.mockReset();
@@ -28,36 +28,36 @@ afterEach(() => {
 describe("isNewLandingEnabled", () => {
   it("returns false when env is unset and not an admin", async () => {
     mockHasAdminCookie.mockResolvedValue(false);
-    expect(await isNewLandingEnabled(fakeReq)).toBe(false);
+    expect(await isNewLandingEnabled(emptyCookies)).toBe(false);
   });
 
   it("returns true when FF_NEW_LANDING=1", async () => {
     process.env.FF_NEW_LANDING = "1";
     mockHasAdminCookie.mockResolvedValue(false);
-    expect(await isNewLandingEnabled(fakeReq)).toBe(true);
+    expect(await isNewLandingEnabled(emptyCookies)).toBe(true);
   });
 
   it("returns true when the caller has an admin cookie", async () => {
     mockHasAdminCookie.mockResolvedValue(true);
-    expect(await isNewLandingEnabled(fakeReq)).toBe(true);
+    expect(await isNewLandingEnabled(emptyCookies)).toBe(true);
   });
 });
 
 describe("isSelfServeEnabled", () => {
   it("returns false when env is unset and not an admin", async () => {
     mockHasAdminCookie.mockResolvedValue(false);
-    expect(await isSelfServeEnabled(fakeReq)).toBe(false);
+    expect(await isSelfServeEnabled(emptyCookies)).toBe(false);
   });
 
   it("returns true when FF_SELF_SERVE=true", async () => {
     process.env.FF_SELF_SERVE = "true";
     mockHasAdminCookie.mockResolvedValue(false);
-    expect(await isSelfServeEnabled(fakeReq)).toBe(true);
+    expect(await isSelfServeEnabled(emptyCookies)).toBe(true);
   });
 
   it("returns true when the caller has an admin cookie", async () => {
     mockHasAdminCookie.mockResolvedValue(true);
-    expect(await isSelfServeEnabled(fakeReq)).toBe(true);
+    expect(await isSelfServeEnabled(emptyCookies)).toBe(true);
   });
 });
 
