@@ -22,7 +22,7 @@ export function PricingCard({
   return (
     <div
       className={cn(
-        "flex flex-col rounded-2xl border p-8 gap-6",
+        "flex h-full flex-col rounded-2xl border p-8 gap-6",
         highlighted
           ? "border-zinc-900 bg-zinc-900 text-white"
           : "border-zinc-200 bg-white text-zinc-900",

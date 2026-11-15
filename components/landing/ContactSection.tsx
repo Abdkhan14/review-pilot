@@ -1,4 +1,5 @@
 import { CONTACT_EMAIL, CONTACT_PHONE } from "./contact";
+import { Reveal } from "./Reveal";
 
 export function ContactSection() {
   return (
@@ -7,7 +8,7 @@ export function ContactSection() {
       aria-label="Contact"
       className="py-24 bg-zinc-50 text-center"
     >
-      <div className="max-w-5xl mx-auto px-6">
+      <Reveal className="max-w-5xl mx-auto px-6">
         <h2 className="text-3xl font-bold tracking-tight text-zinc-900 mb-4">
           Ready to get started?
         </h2>
@@ -29,7 +30,7 @@ export function ContactSection() {
             {CONTACT_PHONE}
           </a>
         </div>
-      </div>
+      </Reveal>
     </section>
   );
 }

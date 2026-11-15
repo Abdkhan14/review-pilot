@@ -2,6 +2,7 @@ import { DEFAULT_LIMITS } from "@/lib/settings";
 import { DAILY_HANDOFF_LIMIT } from "@/lib/handoff";
 import { PricingCard } from "./PricingCard";
 import { GetStartedButton } from "./GetStartedButton";
+import { Reveal } from "./Reveal";
 
 const TRIAL_GENS = DEFAULT_LIMITS["trial.generationLimit"];
 const TRIAL_HANDOFFS = DEFAULT_LIMITS["trial.handoffLimit"];
@@ -62,17 +63,18 @@ export function Pricing({ selfServe = false }: Props) {
           No hidden fees. No per-review charges.
         </p>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-          {CARDS.map((card) => (
-            <PricingCard
-              key={card.name}
-              {...card}
-              ctaSlot={
-                <GetStartedButton
-                  selfServe={selfServe}
-                  className={card.highlighted ? "bg-white text-zinc-900 hover:bg-zinc-100 w-full" : "w-full"}
-                />
-              }
-            />
+          {CARDS.map((card, i) => (
+            <Reveal key={card.name} delay={i * 0.1}>
+              <PricingCard
+                {...card}
+                ctaSlot={
+                  <GetStartedButton
+                    selfServe={selfServe}
+                    className={card.highlighted ? "bg-white text-zinc-900 hover:bg-zinc-100 w-full" : "w-full"}
+                  />
+                }
+              />
+            </Reveal>
           ))}
         </div>
       </div>

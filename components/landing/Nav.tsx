@@ -13,7 +13,10 @@ type Props = {
 
 export function Nav({ contactSlot }: Props) {
   return (
-    <nav className="flex items-center justify-between px-6 py-4 border-b border-zinc-200">
+    <nav
+      data-landing-nav
+      className="sticky top-0 z-40 flex items-center justify-between px-6 py-4 border-b border-zinc-200 bg-white/80 backdrop-blur"
+    >
       <Link href="/" className="text-sm font-semibold tracking-widest uppercase text-zinc-900">
         Review Pilot
       </Link>

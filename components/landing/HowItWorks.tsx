@@ -1,3 +1,5 @@
+import { Reveal } from "./Reveal";
+
 const STEPS = [
   {
     step: "1",
@@ -24,12 +26,12 @@ export function HowItWorks() {
           How it works
         </p>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
-          {STEPS.map(({ step, heading, body }) => (
-            <div key={step} className="flex flex-col gap-4">
+          {STEPS.map(({ step, heading, body }, i) => (
+            <Reveal key={step} delay={i * 0.1} className="flex flex-col gap-4">
               <span className="text-3xl font-bold text-zinc-600">{step}</span>
               <h3 className="text-xl font-bold text-white">{heading}</h3>
               <p className="text-zinc-400 leading-relaxed">{body}</p>
-            </div>
+            </Reveal>
           ))}
         </div>
       </div>
