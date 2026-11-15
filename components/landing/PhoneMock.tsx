@@ -7,7 +7,7 @@ const SAMPLE_DRAFTS = [
   },
   {
     id: "sample-2",
-    text: "Stopped in for a quick lunch and ended up getting a second slice. Get the white pie. Only downside is there's like 4 seats.",
+    text: "Stopped in for a quick lunch and ended up getting a second slice. Get the white pie, you won't regret it.",
   },
 ];
 
