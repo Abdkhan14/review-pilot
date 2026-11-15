@@ -114,25 +114,35 @@ beforeEach(() => {
 describe("POST /api/demo", () => {
   it("returns 404 when flag is off", async () => {
     mockFlag.mockResolvedValue(false);
-    const res = await POST(makePost({ placeId: "ChIJabc" }));
+    const res = await POST(makePost({ placeId: "ChIJabc", notes: "great food" }));
     expect(res.status).toBe(404);
   });
 
   it("returns 429 when rate limited", async () => {
     mockCheck.mockReturnValue(false);
-    const res = await POST(makePost({ placeId: "ChIJabc" }));
+    const res = await POST(makePost({ placeId: "ChIJabc", notes: "great food" }));
     expect(res.status).toBe(429);
     expect(await res.json()).toMatchObject({ error: "rate_limited" });
   });
 
-  it("returns 400 for invalid body", async () => {
-    const res = await POST(makePost({ placeId: "" }));
+  it("returns 400 for invalid body — missing placeId", async () => {
+    const res = await POST(makePost({ placeId: "", notes: "great food" }));
+    expect(res.status).toBe(400);
+  });
+
+  it("returns 400 when notes is missing", async () => {
+    const res = await POST(makePost({ placeId: "ChIJabc" }));
+    expect(res.status).toBe(400);
+  });
+
+  it("returns 400 when notes is whitespace only", async () => {
+    const res = await POST(makePost({ placeId: "ChIJabc", notes: "   " }));
     expect(res.status).toBe(400);
   });
 
   it("returns 403 when place is blocked", async () => {
     mockDb.demoPlace = { findUnique: vi.fn().mockResolvedValue({ ...PLACE, blocked: true }) };
-    const res = await POST(makePost({ placeId: "ChIJabc" }));
+    const res = await POST(makePost({ placeId: "ChIJabc", notes: "great food" }));
     expect(res.status).toBe(403);
     // Blocked shop check must run before Google call
     expect(mockFindOrCreate).not.toHaveBeenCalled();
@@ -140,27 +150,27 @@ describe("POST /api/demo", () => {
 
   it("returns 429 visitor_limit when visitor has 5 links today", async () => {
     mockVisitor.mockResolvedValue(5);
-    const res = await POST(makePost({ placeId: "ChIJabc" }));
+    const res = await POST(makePost({ placeId: "ChIJabc", notes: "great food" }));
     expect(res.status).toBe(429);
     expect(await res.json()).toMatchObject({ error: "visitor_limit" });
   });
 
   it("returns 503 busy when site budget is spent", async () => {
     mockSite.mockResolvedValue(200);
-    const res = await POST(makePost({ placeId: "ChIJabc" }));
+    const res = await POST(makePost({ placeId: "ChIJabc", notes: "great food" }));
     expect(res.status).toBe(503);
     expect(await res.json()).toMatchObject({ error: "busy" });
   });
 
   it("returns 502 when Google place fetch fails", async () => {
     mockFindOrCreate.mockRejectedValue(new Error("Google down"));
-    const res = await POST(makePost({ placeId: "ChIJabc" }));
+    const res = await POST(makePost({ placeId: "ChIJabc", notes: "great food" }));
     expect(res.status).toBe(502);
   });
 
   it("returns 409 used_up when shop has no tries left", async () => {
     mockFindOrCreate.mockResolvedValue({ ...PLACE, generationsUsed: 5 });
-    const res = await POST(makePost({ placeId: "ChIJabc" }));
+    const res = await POST(makePost({ placeId: "ChIJabc", notes: "great food" }));
     expect(res.status).toBe(409);
     expect(await res.json()).toMatchObject({ error: "used_up" });
   });

@@ -37,7 +37,7 @@ export function useCreateDemo() {
     try {
       const res = await api.post<DemoResult>("/api/demo", {
         placeId,
-        notes: notes || undefined,
+        notes: notes.trim(),
         sessionToken,
       });
       setState({ status: "result", data: res.data });

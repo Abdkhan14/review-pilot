@@ -7,97 +7,99 @@ import { usePlaceSearch, type PlaceSuggestion } from "@/hooks/usePlaceSearch";
 import { useCreateDemo } from "@/hooks/useCreateDemo";
 import { PlaceSearch } from "./PlaceSearch";
 import { DemoResult } from "./DemoResult";
+import { DemoQrPlaceholder } from "./DemoQrPlaceholder";
 import { DemoError } from "./DemoError";
 
 export function DemoWidget() {
   const [selectedPlace, setSelectedPlace] = useState<PlaceSuggestion | null>(null);
   const [notes, setNotes] = useState("");
-  const [dropdownOpen, setDropdownOpen] = useState(false);
-  const { query, setQuery, state: searchState, sessionToken, resetSessionToken } = usePlaceSearch();
+  const search = usePlaceSearch();
   const { state: demoState, create, reset } = useCreateDemo();
 
   function handleSelect(place: PlaceSuggestion) {
     setSelectedPlace(place);
-    setQuery(place.name);
-    setDropdownOpen(false);
-    resetSessionToken();
+    search.select(place);
   }
 
   function handleQueryChange(q: string) {
-    setQuery(q);
+    search.setQuery(q);
     setSelectedPlace(null);
-    setDropdownOpen(true);
   }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!selectedPlace) return;
-    await create(selectedPlace.placeId, notes, sessionToken);
+    if (!selectedPlace || !notes.trim()) return;
+    await create(selectedPlace.placeId, notes, search.sessionToken);
   }
 
   function handleMakeAnother() {
     reset();
     setSelectedPlace(null);
-    setQuery("");
     setNotes("");
-    setDropdownOpen(false);
-  }
-
-  if (demoState.status === "result") {
-    return (
-      <div className="rounded-xl border border-zinc-200 bg-white p-6 flex flex-col gap-4">
-        <p className="text-sm font-semibold text-zinc-900">{demoState.data.name}</p>
-        <DemoResult result={demoState.data} onMakeAnother={handleMakeAnother} />
-      </div>
-    );
-  }
-
-  if (demoState.status === "error") {
-    return (
-      <div className="rounded-xl border border-zinc-200 bg-white p-6 flex flex-col gap-4">
-        <DemoError code={demoState.code} onTryAgain={handleMakeAnother} />
-      </div>
-    );
+    search.reset();
   }
 
   const suggestions =
-    searchState.status === "results" ? searchState.places : [];
+    search.state.status === "results" ? search.state.places : [];
+
+  const hasResult = demoState.status === "result";
+  const isLoading = demoState.status === "loading";
+  const canSubmit = !!selectedPlace && notes.trim().length > 0 && !isLoading;
 
   return (
-    <form
-      onSubmit={handleSubmit}
-      className="rounded-xl border border-zinc-200 bg-white p-6 flex flex-col gap-4"
-    >
-      <PlaceSearch
-        query={query}
-        onQueryChange={handleQueryChange}
-        suggestions={suggestions}
-        showDropdown={(dropdownOpen || searchState.status === "results") && query.length >= 2}
-        onSelect={handleSelect}
-      />
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      {/* Left column: form (locked while result showing) or error */}
+      <div className="rounded-xl border border-zinc-200 bg-white p-6 flex flex-col gap-4">
+        {demoState.status === "error" ? (
+          <DemoError code={demoState.code} onTryAgain={handleMakeAnother} />
+        ) : (
+          <fieldset disabled={hasResult} className="contents">
+            <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+              <PlaceSearch
+                query={search.query}
+                onQueryChange={handleQueryChange}
+                suggestions={suggestions}
+                showDropdown={!selectedPlace && search.state.status === "results"}
+                onSelect={handleSelect}
+              />
 
-      <div className="flex flex-col gap-1">
-        <label className="text-sm font-semibold text-zinc-900" htmlFor="demo-notes">
-          What makes you special?{" "}
-          <span className="font-normal text-zinc-500">(optional)</span>
-        </label>
-        <Textarea
-          id="demo-notes"
-          placeholder="Thin-crust pizza, great service, cosy patio…"
-          value={notes}
-          onChange={(e) => setNotes(e.target.value)}
-          rows={3}
-          maxLength={500}
-        />
+              <div className="flex flex-col gap-1">
+                <label
+                  className="text-sm font-semibold text-zinc-900"
+                  htmlFor="demo-notes"
+                >
+                  What makes you special?
+                </label>
+                <Textarea
+                  id="demo-notes"
+                  placeholder="Thin-crust pizza, great service, cosy patio…"
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                  rows={3}
+                  maxLength={500}
+                  required
+                />
+              </div>
+
+              <Button type="submit" className="w-full" disabled={!canSubmit}>
+                {isLoading ? "Creating demo…" : "Generate demo link"}
+              </Button>
+            </form>
+          </fieldset>
+        )}
       </div>
 
-      <Button
-        type="submit"
-        className="w-full"
-        disabled={!selectedPlace || demoState.status === "loading"}
-      >
-        {demoState.status === "loading" ? "Creating demo…" : "Generate demo link"}
-      </Button>
-    </form>
+      {/* Right column: result or placeholder */}
+      <div className="rounded-xl border border-zinc-200 bg-white p-6 flex flex-col gap-4">
+        {hasResult ? (
+          <DemoResult
+            result={demoState.data}
+            onMakeAnother={handleMakeAnother}
+          />
+        ) : (
+          <DemoQrPlaceholder loading={isLoading} />
+        )}
+      </div>
+    </div>
   );
 }

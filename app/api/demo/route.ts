@@ -21,7 +21,7 @@ import { buildDemoUrl } from "@/lib/scan-url";
 
 const bodySchema = z.object({
   placeId: z.string().min(1),
-  notes: z.string().max(500).optional(),
+  notes: z.string().trim().min(1).max(500),
   sessionToken: z.string().uuid().optional(),
 });
 

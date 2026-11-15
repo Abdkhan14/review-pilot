@@ -2,13 +2,8 @@
 import { vi, describe, it, expect, beforeEach, afterEach } from "vitest";
 
 vi.mock("@/hooks/api", () => ({ api: { post: vi.fn() } }));
-vi.mock("@/hooks/usePlaceSearch", () => ({
-  usePlaceSearch: vi.fn(),
-}));
-vi.mock("@/hooks/useCreateDemo", () => ({
-  useCreateDemo: vi.fn(),
-}));
-// LiveDemo imports DemoWidget which is a client component; mock server-only deps
+vi.mock("@/hooks/usePlaceSearch", () => ({ usePlaceSearch: vi.fn() }));
+vi.mock("@/hooks/useCreateDemo", () => ({ useCreateDemo: vi.fn() }));
 vi.mock("server-only", () => ({}));
 
 import { render, screen, fireEvent, cleanup } from "@testing-library/react";
@@ -26,7 +21,8 @@ const IDLE_SEARCH = {
   setQuery: vi.fn(),
   state: { status: "idle" as const },
   sessionToken: "tok-1",
-  resetSessionToken: vi.fn(),
+  select: vi.fn(),
+  reset: vi.fn(),
 };
 
 const IDLE_DEMO = {
@@ -40,8 +36,8 @@ const RESULT_DATA = {
   name: "Joe's Pizza",
   assistedUrl: "https://app.com/d/sess1",
   basicUrl: "https://app.com/d/sess1?plan=basic",
-  assistedQrSvg: "<svg data-testid='qr-assisted'></svg>",
-  basicQrSvg: "<svg data-testid='qr-basic'></svg>",
+  assistedQrSvg: "<svg></svg>",
+  basicQrSvg: "<svg></svg>",
   triesLeft: 4,
   expiresAt: new Date(Date.now() + 86_400_000).toISOString(),
 };
@@ -57,9 +53,10 @@ beforeEach(() => {
 });
 
 describe("DemoWidget", () => {
-  it("renders the search form in idle state", () => {
+  it("renders the search form and QR placeholder in idle state", () => {
     render(<DemoWidget />);
     expect(screen.getByRole("combobox")).toBeDefined();
+    expect(screen.getByText("Your demo QR code")).toBeDefined();
   });
 
   it("shows search results dropdown when status is results", () => {
@@ -71,19 +68,46 @@ describe("DemoWidget", () => {
     render(<DemoWidget />);
     expect(screen.getByText("Joe's Pizza")).toBeDefined();
     expect(screen.getByText("214 Mulberry St")).toBeDefined();
-    expect(screen.getByText("Results from Google")).toBeDefined();
   });
 
-  it("shows result card when demo state is result", () => {
+  it("hides dropdown after a place is selected", () => {
+    // After selection, selectedPlace is set and state goes idle — dropdown closes.
+    const selectFn = vi.fn();
+    mockUsePlaceSearch.mockReturnValue({
+      ...IDLE_SEARCH,
+      query: "Joe's Pizza",
+      state: { status: "idle" as const },
+      select: selectFn,
+    });
+    render(<DemoWidget />);
+    // No list box should appear when state is idle.
+    expect(screen.queryByRole("listbox")).toBeNull();
+  });
+
+  it("submit button disabled without notes", () => {
+    // selectedPlace set via hook mock returning a place name as query —
+    // but notes is empty, so the button must stay disabled.
+    mockUsePlaceSearch.mockReturnValue({
+      ...IDLE_SEARCH,
+      query: "Joe's Pizza",
+      state: { status: "idle" as const },
+    });
+    render(<DemoWidget />);
+    const btn = screen.getByRole("button", { name: "Generate demo link" });
+    expect((btn as HTMLButtonElement).disabled).toBe(true);
+  });
+
+  it("shows result card and placeholder is gone when demo state is result", () => {
     mockUseCreateDemo.mockReturnValue({
       ...IDLE_DEMO,
       state: { status: "result", data: RESULT_DATA },
     });
     render(<DemoWidget />);
+    expect(screen.getByText("Scan with your phone camera")).toBeDefined();
     expect(screen.getByText("4 tries left")).toBeDefined();
-    expect(screen.getByText("Assisted")).toBeDefined();
-    expect(screen.getByText("Basic")).toBeDefined();
     expect(screen.getByRole("button", { name: "Make another" })).toBeDefined();
+    // Placeholder should not be present
+    expect(screen.queryByText("Your demo QR code")).toBeNull();
   });
 
   it("swaps link when Basic is selected on result card", () => {

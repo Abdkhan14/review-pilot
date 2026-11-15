@@ -10,6 +10,15 @@ type Props = {
   onMakeAnother: () => void;
 };
 
+function LiveDot() {
+  return (
+    <span className="relative flex size-2.5 shrink-0">
+      <span className="absolute inline-flex size-full rounded-full bg-emerald-400 opacity-75 motion-safe:animate-ping" />
+      <span className="relative inline-flex size-2.5 rounded-full bg-emerald-500" />
+    </span>
+  );
+}
+
 export function DemoResult({ result, onMakeAnother }: Props) {
   const [mode, setMode] = useState<"assisted" | "basic">("assisted");
   const [linkCopied, setLinkCopied] = useState(false);
@@ -29,12 +38,21 @@ export function DemoResult({ result, onMakeAnother }: Props) {
 
   return (
     <div className="flex flex-col gap-4">
-      {/* QR code */}
-      <div
-        className="w-20 h-20"
-        dangerouslySetInnerHTML={{ __html: qrSvg }}
-        aria-label={`QR code for ${result.name}`}
-      />
+      {/* QR code + shop name + live dot */}
+      <div className="flex gap-4 items-start">
+        <div
+          className="size-20 shrink-0"
+          dangerouslySetInnerHTML={{ __html: qrSvg }}
+          aria-label={`QR code for ${result.name}`}
+        />
+        <div className="flex flex-col gap-1 pt-1">
+          <p className="text-sm font-semibold text-zinc-900">{result.name}</p>
+          <div className="flex items-center gap-1.5">
+            <LiveDot />
+            <p className="text-xs text-zinc-600">Scan with your phone camera</p>
+          </div>
+        </div>
+      </div>
 
       {/* Demo link */}
       <div className="flex items-center gap-2 rounded-md border border-zinc-200 bg-zinc-50 px-3 py-2">
