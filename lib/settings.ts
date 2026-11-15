@@ -14,7 +14,7 @@ export const DEFAULT_LIMITS: AppLimits = {
   "assisted.dailyHandoffLimit": DAILY_HANDOFF_LIMIT,
   "trial.generationLimit": 5,
   "trial.handoffLimit": 2,
-  "demo.generationsPerPlace": 3,
+  "demo.generationsPerPlace": 5,
   "demo.createsPerIpPerDay": 5,
   "demo.dailyGenerations": 200,
 };
