@@ -18,7 +18,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="en">
       <body className={`${layoutClass.body} ${font.className}`}>
-        <div className={layoutClass.column}>{children}</div>
+        {children}
       </body>
     </html>
   );

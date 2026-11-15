@@ -6,6 +6,8 @@ import { Alert } from "@/components/ui/alert";
 type Props = {
   /** Unix timestamp (ms) of the next UTC midnight. */
   retryAtMs: number;
+  /** Daily handoff cap shown in the policy copy. */
+  limit: number;
 };
 
 function formatHms(ms: number): string {
@@ -16,7 +18,7 @@ function formatHms(ms: number): string {
   return [h, m, s].map((n) => String(n).padStart(2, "0")).join(":");
 }
 
-export function DailyCap({ retryAtMs }: Props) {
+export function DailyCap({ retryAtMs, limit }: Props) {
   const [remaining, setRemaining] = useState(() => retryAtMs - Date.now());
 
   useEffect(() => {
@@ -33,9 +35,9 @@ export function DailyCap({ retryAtMs }: Props) {
   return (
     <div className="flex flex-col gap-4" data-testid="daily-cap">
       <Alert variant="destructive">
-        According to Google&apos;s policies we should not be posting more than 5
-        reviews a day, to avoid risking your account getting banned for review
-        farming.
+        According to Google&apos;s policies we should not be posting more than{" "}
+        {limit} reviews a day, to avoid risking your account getting banned for
+        review farming.
       </Alert>
 
       {expired ? (

@@ -17,26 +17,31 @@ const ONE_HOUR_MS = 60 * 60 * 1_000;
 
 describe("DailyCap", () => {
   it("shows the destructive policy banner", () => {
-    render(<DailyCap retryAtMs={Date.now() + ONE_HOUR_MS} />);
+    render(<DailyCap retryAtMs={Date.now() + ONE_HOUR_MS} limit={6} />);
     expect(screen.getByRole("alert")).toBeDefined();
     expect(screen.getByText(/google's policies/i)).toBeDefined();
     expect(screen.getByText(/review farming/i)).toBeDefined();
   });
 
+  it("renders the limit number in the policy copy", () => {
+    render(<DailyCap retryAtMs={Date.now() + ONE_HOUR_MS} limit={6} />);
+    expect(screen.getByText(/6/)).toBeDefined();
+  });
+
   it("shows the countdown timer", () => {
-    render(<DailyCap retryAtMs={Date.now() + ONE_HOUR_MS} />);
+    render(<DailyCap retryAtMs={Date.now() + ONE_HOUR_MS} limit={6} />);
     expect(screen.getByTestId("daily-cap-timer")).toBeDefined();
     expect(screen.getByText(/available again in/i)).toBeDefined();
   });
 
   it("does not show the Google Reviews link", () => {
-    render(<DailyCap retryAtMs={Date.now() + ONE_HOUR_MS} />);
+    render(<DailyCap retryAtMs={Date.now() + ONE_HOUR_MS} limit={6} />);
     expect(screen.queryByRole("link")).toBeNull();
   });
 
   it("shows 'You can try again now' and a reload button when the timer expires", () => {
     const retryAtMs = Date.now() + 500;
-    render(<DailyCap retryAtMs={retryAtMs} />);
+    render(<DailyCap retryAtMs={retryAtMs} limit={6} />);
     // Advance past the expiry and flush React state
     act(() => {
       vi.advanceTimersByTime(2_000);
