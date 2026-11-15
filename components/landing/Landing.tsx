@@ -2,6 +2,9 @@ import { Nav } from "./Nav";
 import { Hero } from "./Hero";
 import { DemoPlaceholder } from "./DemoPlaceholder";
 import { HowItWorks } from "./HowItWorks";
+import { Pricing } from "./Pricing";
+import { Testimonials } from "./Testimonials";
+import { Faq } from "./Faq";
 import { ContactSection } from "./ContactSection";
 import { Footer } from "./Footer";
 import { GetStartedButton } from "./GetStartedButton";
@@ -20,6 +23,9 @@ export function Landing({ fromQr = false, selfServe = false }: Props) {
         <Hero ctaSlot={<GetStartedButton selfServe={selfServe} />} />
         <DemoPlaceholder />
         <HowItWorks />
+        <Pricing selfServe={selfServe} />
+        <Testimonials />
+        <Faq />
         <ContactSection />
       </main>
       <Footer />
