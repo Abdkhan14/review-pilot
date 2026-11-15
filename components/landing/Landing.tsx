@@ -2,7 +2,9 @@ import { Nav } from "./Nav";
 import { Hero } from "./Hero";
 import { DemoPlaceholder } from "./DemoPlaceholder";
 import { HowItWorks } from "./HowItWorks";
+import { ContactSection } from "./ContactSection";
 import { Footer } from "./Footer";
+import { GetStartedButton } from "./GetStartedButton";
 
 type Props = {
   fromQr?: boolean;
@@ -11,14 +13,14 @@ type Props = {
 
 export function Landing({ fromQr = false, selfServe = false }: Props) {
   void fromQr; // used in later commits
-  void selfServe; // used in later commits
   return (
     <div className="min-h-dvh flex flex-col">
-      <Nav />
+      <Nav contactSlot={<GetStartedButton selfServe={selfServe} />} />
       <main className="flex-1">
+        <Hero ctaSlot={<GetStartedButton selfServe={selfServe} />} />
         <DemoPlaceholder />
-        <Hero />
         <HowItWorks />
+        <ContactSection />
       </main>
       <Footer />
     </div>
