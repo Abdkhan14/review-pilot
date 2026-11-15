@@ -49,36 +49,29 @@ describe("usePlaceSearch", () => {
     vi.useRealTimers();
   });
 
-  it("select() sets state idle and prevents next search", async () => {
+  it("clearing the query cancels a pending search", async () => {
     vi.useFakeTimers();
     const { result } = renderHook(() => usePlaceSearch());
     act(() => { result.current.setQuery("Joe"); });
-    await act(() => vi.advanceTimersByTimeAsync(400));
-    expect(mockPost).toHaveBeenCalledOnce();
-
-    // Select the place — should flip to idle and not trigger another call.
-    act(() => { result.current.select(PLACE); });
+    await act(() => vi.advanceTimersByTimeAsync(200));
+    act(() => { result.current.setQuery(""); });
     await act(() => vi.advanceTimersByTimeAsync(500));
 
-    expect(mockPost).toHaveBeenCalledOnce(); // still just one call
+    expect(mockPost).not.toHaveBeenCalled();
     expect(result.current.state.status).toBe("idle");
-    expect(result.current.query).toBe(PLACE.name);
     vi.useRealTimers();
   });
 
-  it("session token stays the same through select() and changes after reset()", async () => {
+  it("keeps the session token across searches and changes it after reset()", async () => {
     vi.useFakeTimers();
     const { result } = renderHook(() => usePlaceSearch());
     const tokenBefore = result.current.sessionToken;
 
     act(() => { result.current.setQuery("Joe"); });
     await act(() => vi.advanceTimersByTimeAsync(400));
-    act(() => { result.current.select(PLACE); });
-
-    // Token unchanged after selection (session should close on submit).
+    act(() => { result.current.setQuery(""); });
     expect(result.current.sessionToken).toBe(tokenBefore);
 
-    // Token changes after reset (new search lifecycle).
     act(() => { result.current.reset(); });
     expect(result.current.sessionToken).not.toBe(tokenBefore);
     vi.useRealTimers();

@@ -18,11 +18,10 @@ export function DemoWidget() {
 
   function handleSelect(place: PlaceSuggestion) {
     setSelectedPlace(place);
-    search.select(place);
+    search.setQuery("");
   }
 
-  function handleQueryChange(q: string) {
-    search.setQuery(q);
+  function handleClearPlace() {
     setSelectedPlace(null);
   }
 
@@ -57,10 +56,12 @@ export function DemoWidget() {
             <form onSubmit={handleSubmit} className="flex flex-col gap-4">
               <PlaceSearch
                 query={search.query}
-                onQueryChange={handleQueryChange}
+                onQueryChange={search.setQuery}
                 suggestions={suggestions}
                 showDropdown={!selectedPlace && search.state.status === "results"}
+                selected={selectedPlace}
                 onSelect={handleSelect}
+                onClear={handleClearPlace}
               />
 
               <div className="flex flex-col gap-1">
@@ -90,7 +91,7 @@ export function DemoWidget() {
       </div>
 
       {/* Right column: result or placeholder */}
-      <div className="rounded-xl border border-zinc-200 bg-white p-6 flex flex-col gap-4">
+      <div className="rounded-xl border border-zinc-200 bg-white p-6 flex flex-col justify-center gap-4">
         {hasResult ? (
           <DemoResult
             result={demoState.data}

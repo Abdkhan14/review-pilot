@@ -21,7 +21,6 @@ const IDLE_SEARCH = {
   setQuery: vi.fn(),
   state: { status: "idle" as const },
   sessionToken: "tok-1",
-  select: vi.fn(),
   reset: vi.fn(),
 };
 
@@ -70,31 +69,45 @@ describe("DemoWidget", () => {
     expect(screen.getByText("214 Mulberry St")).toBeDefined();
   });
 
-  it("hides dropdown after a place is selected", () => {
-    // After selection, selectedPlace is set and state goes idle — dropdown closes.
-    const selectFn = vi.fn();
+  it("shows the picked shop with its address and closes the dropdown", () => {
     mockUsePlaceSearch.mockReturnValue({
       ...IDLE_SEARCH,
-      query: "Joe's Pizza",
-      state: { status: "idle" as const },
-      select: selectFn,
+      query: "Joe",
+      state: { status: "results", places: [PLACE] },
     });
     render(<DemoWidget />);
-    // No list box should appear when state is idle.
+    fireEvent.mouseDown(screen.getByRole("option"));
+
     expect(screen.queryByRole("listbox")).toBeNull();
+    expect(screen.queryByRole("combobox")).toBeNull();
+    expect(screen.getByText("Joe's Pizza")).toBeDefined();
+    expect(screen.getByText("214 Mulberry St")).toBeDefined();
+    expect(IDLE_SEARCH.setQuery).toHaveBeenCalledWith("");
+
+    fireEvent.click(screen.getByRole("button", { name: "Change" }));
+    expect(screen.getByRole("combobox")).toBeDefined();
   });
 
-  it("submit button disabled without notes", () => {
-    // selectedPlace set via hook mock returning a place name as query —
-    // but notes is empty, so the button must stay disabled.
+  it("keeps submit disabled until notes are filled in", () => {
     mockUsePlaceSearch.mockReturnValue({
       ...IDLE_SEARCH,
-      query: "Joe's Pizza",
-      state: { status: "idle" as const },
+      query: "Joe",
+      state: { status: "results", places: [PLACE] },
     });
     render(<DemoWidget />);
-    const btn = screen.getByRole("button", { name: "Generate demo link" });
-    expect((btn as HTMLButtonElement).disabled).toBe(true);
+    fireEvent.mouseDown(screen.getByRole("option"));
+    const btn = screen.getByRole("button", { name: "Generate demo link" }) as HTMLButtonElement;
+    expect(btn.disabled).toBe(true);
+
+    fireEvent.change(screen.getByLabelText("What makes you special?"), {
+      target: { value: "   " },
+    });
+    expect(btn.disabled).toBe(true);
+
+    fireEvent.change(screen.getByLabelText("What makes you special?"), {
+      target: { value: "Thin crust" },
+    });
+    expect(btn.disabled).toBe(false);
   });
 
   it("shows result card and placeholder is gone when demo state is result", () => {

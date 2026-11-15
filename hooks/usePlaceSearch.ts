@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { api } from "@/hooks/api";
 
 export type PlaceSuggestion = {
@@ -15,29 +15,26 @@ type State =
   | { status: "results"; places: PlaceSuggestion[] }
   | { status: "error" };
 
+type Settled = Extract<State, { status: "results" | "error" }>;
+
 const DEBOUNCE_MS = 400;
+const MIN_QUERY_LENGTH = 2;
 
 export function usePlaceSearch() {
   const [query, setQuery] = useState("");
-  const [state, setState] = useState<State>({ status: "idle" });
-  // Session token is tracked as state so DemoWidget re-renders when it changes.
+  const [settled, setSettled] = useState<{ query: string; state: Settled } | null>(null);
+  // One token per search lifecycle so Google bills autocomplete + details as one session.
   const [sessionToken, setSessionToken] = useState(() => crypto.randomUUID());
-  // When select() is called we set the query to the place name, but we don't
-  // want that to trigger another search. This flag skips the next effect run.
-  const skipNextRef = useRef(false);
+
+  const state: State =
+    query.length < MIN_QUERY_LENGTH
+      ? { status: "idle" }
+      : settled?.query === query
+        ? settled.state
+        : { status: "loading" };
 
   useEffect(() => {
-    if (skipNextRef.current) {
-      skipNextRef.current = false;
-      return;
-    }
-
-    if (query.length < 2) {
-      setState({ status: "idle" });
-      return;
-    }
-
-    setState({ status: "loading" });
+    if (query.length < MIN_QUERY_LENGTH) return;
 
     let cancelled = false;
     const timer = setTimeout(async () => {
@@ -46,9 +43,9 @@ export function usePlaceSearch() {
           "/api/places/autocomplete",
           { input: query, sessionToken },
         );
-        if (!cancelled) setState({ status: "results", places: res.data.places });
+        if (!cancelled) setSettled({ query, state: { status: "results", places: res.data.places } });
       } catch {
-        if (!cancelled) setState({ status: "error" });
+        if (!cancelled) setSettled({ query, state: { status: "error" } });
       }
     }, DEBOUNCE_MS);
 
@@ -58,17 +55,11 @@ export function usePlaceSearch() {
     };
   }, [query, sessionToken]);
 
-  function select(place: PlaceSuggestion) {
-    skipNextRef.current = true;
-    setQuery(place.name);
-    setState({ status: "idle" });
-  }
-
   function reset() {
     setQuery("");
-    setState({ status: "idle" });
+    setSettled(null);
     setSessionToken(crypto.randomUUID());
   }
 
-  return { query, setQuery, state, sessionToken, select, reset };
+  return { query, setQuery, state, sessionToken, reset };
 }
