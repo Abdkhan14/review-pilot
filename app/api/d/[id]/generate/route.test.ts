@@ -74,9 +74,9 @@ const SESSION = {
 };
 
 const REVIEWS = [
-  { id: "a", text: "Great pizza!" },
-  { id: "b", text: "Amazing crust." },
-  { id: "c", text: "Will be back." },
+  { id: "a", angle: "friendly", text: "Great pizza!" },
+  { id: "b", angle: "detail", text: "Amazing crust." },
+  { id: "c", angle: "quick", text: "Will be back." },
 ];
 
 function makePost(id = "sess1"): NextRequest {
