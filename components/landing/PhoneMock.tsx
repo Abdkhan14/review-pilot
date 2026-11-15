@@ -3,11 +3,11 @@ import { DraftPicker } from "@/components/scan/DraftPicker";
 const SAMPLE_DRAFTS = [
   {
     id: "sample-1",
-    text: "Came for a slice, stayed for the garlic knots. Crust was thin and crisp, and they remembered my order from last week.",
+    text: "Been coming here every Friday since I moved to the area. The garlic knots are the reason. Guy at the counter had my order memorized by week two.",
   },
   {
     id: "sample-2",
-    text: "Quick lunch stop that turned into a regular thing. The white pie is the move.",
+    text: "Stopped in for a quick lunch and ended up getting a second slice. Get the white pie. Only downside is there's like 4 seats.",
   },
 ];
 
