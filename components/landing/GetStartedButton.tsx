@@ -4,29 +4,46 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ContactSheet } from "./ContactSheet";
 
+type Variant = "default" | "outline" | "ghost";
+type Size = "sm" | "lg";
+
 type Props = {
-  /** When true, clicking navigates to /sign-in. When false, opens the contact sheet. */
   selfServe: boolean;
+  label?: string;
+  variant?: Variant;
+  size?: Size;
   className?: string;
 };
 
-export function GetStartedButton({ selfServe, className }: Props) {
-  const [sheetOpen, setSheetOpen] = useState(false);
+/**
+ * Primary call-to-action throughout the landing page.
+ *
+ * - selfServe=true  → links to /sign-in
+ * - selfServe=false → opens the contact sheet with the sign-ups note
+ */
+export function GetStartedButton({
+  selfServe,
+  label = "Get started",
+  variant = "default",
+  size = "sm",
+  className,
+}: Props) {
+  const [open, setOpen] = useState(false);
 
   if (selfServe) {
     return (
-      <Button asChild className={className}>
-        <a href="/sign-in">Get started</a>
+      <Button asChild variant={variant} size={size} className={className}>
+        <a href="/sign-in">{label}</a>
       </Button>
     );
   }
 
   return (
     <>
-      <Button onClick={() => setSheetOpen(true)} className={className}>
-        Get started
+      <Button variant={variant} size={size} className={className} onClick={() => setOpen(true)}>
+        {label}
       </Button>
-      <ContactSheet open={sheetOpen} onClose={() => setSheetOpen(false)} />
+      <ContactSheet open={open} onClose={() => setOpen(false)} showNote />
     </>
   );
 }

@@ -11,6 +11,11 @@ vi.mock("@/lib/flags", () => ({
   isSelfServeEnabled: vi.fn(),
 }));
 
+// LiveDemo is an async server component that uses server-only modules — stub it out.
+vi.mock("@/components/landing/LiveDemo", () => ({
+  LiveDemo: () => null,
+}));
+
 import { isNewLandingEnabled, isSelfServeEnabled } from "@/lib/flags";
 import HomePage from "./page";
 

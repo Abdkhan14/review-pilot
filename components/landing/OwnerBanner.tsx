@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Button } from "@/components/ui/button";
 
 export function OwnerBanner() {
   const [dismissed, setDismissed] = useState(false);
@@ -13,18 +14,21 @@ export function OwnerBanner() {
       className="flex items-center justify-between gap-4 bg-zinc-900 text-white px-6 py-3 text-sm"
     >
       <p>
-        This is what your customers see.{" "}
-        <a href="/sign-in" className="underline hover:text-zinc-300 transition-colors">
-          Want to manage it? Sign in.
-        </a>
+        Own this business? This sticker is from our old system.{" "}
+        <span className="text-zinc-400">Get your new QR here.</span>
       </p>
-      <button
-        onClick={() => setDismissed(true)}
-        aria-label="Dismiss banner"
-        className="text-zinc-400 hover:text-white transition-colors shrink-0"
-      >
-        ✕
-      </button>
+      <div className="flex items-center gap-3 shrink-0">
+        <Button asChild variant="outline" size="sm" className="bg-white text-zinc-900 hover:bg-zinc-100 border-white">
+          <a href="/sign-in">Get my QR</a>
+        </Button>
+        <button
+          onClick={() => setDismissed(true)}
+          aria-label="Dismiss banner"
+          className="text-zinc-400 hover:text-white transition-colors"
+        >
+          ✕
+        </button>
+      </div>
     </div>
   );
 }

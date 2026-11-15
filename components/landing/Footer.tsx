@@ -1,3 +1,5 @@
+import { ContactButton } from "./ContactButton";
+
 export function Footer() {
   return (
     <footer className="border-t border-zinc-200 px-6 py-10">
@@ -5,9 +7,10 @@ export function Footer() {
         <span className="font-semibold tracking-widest uppercase text-zinc-400">
           Review Pilot
         </span>
-        <nav className="flex gap-6">
+        <nav className="flex items-center gap-6">
           <a href="/terms" className="hover:text-zinc-900 transition-colors">Terms</a>
           <a href="/privacy" className="hover:text-zinc-900 transition-colors">Privacy</a>
+          <ContactButton />
         </nav>
         <span>© {new Date().getFullYear()} Review Pilot</span>
       </div>

@@ -20,9 +20,10 @@ describe("Pricing", () => {
     expect(screen.getByText("$5")).toBeDefined();
   });
 
-  it("renders get started buttons", () => {
+  it("renders a CTA button for each card", () => {
     render(<Pricing />);
-    const buttons = screen.getAllByText(/get started/i);
-    expect(buttons.length).toBe(3);
+    expect(screen.getByText(/start free trial/i)).toBeDefined();
+    expect(screen.getByText(/get basic/i)).toBeDefined();
+    expect(screen.getByText(/get assisted/i)).toBeDefined();
   });
 });

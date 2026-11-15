@@ -14,6 +14,6 @@ describe("Faq", () => {
 
   it("renders the section heading", () => {
     render(<Faq />);
-    expect(screen.getByRole("heading", { name: /frequently asked questions/i })).toBeDefined();
+    expect(screen.getByRole("heading", { name: /questions owners ask/i })).toBeDefined();
   });
 });

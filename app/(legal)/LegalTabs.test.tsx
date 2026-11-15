@@ -16,9 +16,9 @@ describe("LegalTabs", () => {
     expect(screen.getByRole("link", { name: /privacy/i })).toBeDefined();
   });
 
-  it("marks the active tab with a visible border", () => {
+  it("marks the active tab with the pill highlight", () => {
     render(<LegalTabs />);
     const termsLink = screen.getByRole("link", { name: /terms of service/i }) as HTMLAnchorElement;
-    expect(termsLink.className).toContain("border-zinc-900");
+    expect(termsLink.className).toContain("bg-zinc-900");
   });
 });

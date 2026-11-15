@@ -1,17 +1,18 @@
 import Link from "next/link";
+import { GetStartedButton } from "./GetStartedButton";
+import { ContactButton } from "./ContactButton";
 
 const NAV_LINKS = [
-  { label: "How it works", href: "#how-it-works" },
-  { label: "Pricing", href: "#pricing" },
-  { label: "FAQ", href: "#faq" },
+  { label: "Demo", href: "/#demo" },
+  { label: "Pricing", href: "/#pricing" },
+  { label: "FAQ", href: "/#faq" },
 ] as const;
 
 type Props = {
-  /** Slot for the Contact button — provided by the parent once a sheet is wired. */
-  contactSlot?: React.ReactNode;
+  selfServe: boolean;
 };
 
-export function Nav({ contactSlot }: Props) {
+export function Nav({ selfServe }: Props) {
   return (
     <nav
       data-landing-nav
@@ -20,7 +21,7 @@ export function Nav({ contactSlot }: Props) {
       <Link href="/" className="text-sm font-semibold tracking-widest uppercase text-zinc-900">
         Review Pilot
       </Link>
-      <div className="flex items-center gap-6">
+      <div className="flex items-center gap-4">
         <ul className="hidden sm:flex items-center gap-6 list-none m-0 p-0">
           {NAV_LINKS.map(({ label, href }) => (
             <li key={href}>
@@ -30,7 +31,8 @@ export function Nav({ contactSlot }: Props) {
             </li>
           ))}
         </ul>
-        {contactSlot}
+        <ContactButton />
+        <GetStartedButton selfServe={selfServe} label="Get started" />
       </div>
     </nav>
   );

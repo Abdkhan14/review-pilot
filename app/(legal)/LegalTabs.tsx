@@ -12,16 +12,19 @@ export function LegalTabs() {
   const pathname = usePathname();
 
   return (
-    <nav aria-label="Legal pages" className="flex gap-6 border-b border-zinc-200 mb-10">
+    <nav
+      aria-label="Legal pages"
+      className="flex gap-1 p-1 rounded-lg bg-zinc-100 w-fit mb-10"
+    >
       {TABS.map(({ label, href }) => (
         <a
           key={href}
           href={href}
           className={cn(
-            "pb-3 text-sm font-medium border-b-2 -mb-px transition-colors",
+            "rounded-md px-4 py-2 text-sm font-medium transition-colors",
             pathname === href
-              ? "border-zinc-900 text-zinc-900"
-              : "border-transparent text-zinc-500 hover:text-zinc-900",
+              ? "bg-zinc-900 text-zinc-50 shadow-sm"
+              : "text-zinc-600 hover:text-zinc-900",
           )}
         >
           {label}

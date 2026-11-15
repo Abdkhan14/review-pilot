@@ -1,13 +1,12 @@
 import { Nav } from "./Nav";
 import { Hero } from "./Hero";
-import { DemoPlaceholder } from "./DemoPlaceholder";
+import { LiveDemo } from "./LiveDemo";
 import { HowItWorks } from "./HowItWorks";
 import { Pricing } from "./Pricing";
 import { Testimonials } from "./Testimonials";
 import { Faq } from "./Faq";
 import { ContactSection } from "./ContactSection";
 import { Footer } from "./Footer";
-import { GetStartedButton } from "./GetStartedButton";
 import { OwnerBanner } from "./OwnerBanner";
 import { SmoothScroll } from "./SmoothScroll";
 
@@ -21,10 +20,10 @@ export function Landing({ fromQr = false, selfServe = false }: Props) {
     <div className="min-h-dvh flex flex-col">
       <SmoothScroll />
       {fromQr && <OwnerBanner />}
-      <Nav contactSlot={<GetStartedButton selfServe={selfServe} />} />
+      <Nav selfServe={selfServe} />
       <main className="flex-1">
-        <Hero ctaSlot={<GetStartedButton selfServe={selfServe} />} />
-        <DemoPlaceholder />
+        <Hero selfServe={selfServe} />
+        <LiveDemo />
         <HowItWorks />
         <Pricing selfServe={selfServe} />
         <Testimonials />

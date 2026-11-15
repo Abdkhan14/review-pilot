@@ -19,13 +19,17 @@ export function SmoothScroll() {
 
     function onClick(event: MouseEvent) {
       if (event.defaultPrevented || event.metaKey || event.ctrlKey || event.shiftKey) return;
-      const link = (event.target as Element).closest<HTMLAnchorElement>('a[href^="#"]');
-      const id = link?.getAttribute("href")?.slice(1);
+      // Match bare `#id` and `/#id` links (the latter so nav hrefs work on other pages)
+      const link = (event.target as Element).closest<HTMLAnchorElement>('a[href^="#"], a[href^="/#"]');
+      const href = link?.getAttribute("href") ?? "";
+      const isRootHash = href.startsWith("/#");
+      if (isRootHash && window.location.pathname !== "/") return;
+      const id = isRootHash ? href.slice(2) : href.slice(1);
       const target = id ? document.getElementById(id) : null;
       if (!target) return;
 
       event.preventDefault();
-      history.pushState(null, "", `#${id}`);
+      history.pushState(null, "", `#${id}`); // always push bare hash regardless of incoming href form
 
       const to = targetTop(target);
       if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
