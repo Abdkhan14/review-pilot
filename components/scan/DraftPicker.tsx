@@ -26,9 +26,22 @@ type Props = {
   testing?: boolean;
   generateFailed?: boolean;
   rateLimited?: boolean;
+  /** Label for the "Try another set" button shown after copying a draft.
+   *  Pass an empty string to hide the button. Omit on pages without re-generate. */
+  anotherSetLabel?: string;
+  onAnotherSet?: () => void;
 };
 
-export function DraftPicker({ drafts, writeReviewUrl, handoffUrl, testing = false, generateFailed = false, rateLimited = false }: Props) {
+export function DraftPicker({
+  drafts,
+  writeReviewUrl,
+  handoffUrl,
+  testing = false,
+  generateFailed = false,
+  rateLimited = false,
+  anotherSetLabel,
+  onAnotherSet,
+}: Props) {
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
   const visibleDrafts = copiedId
@@ -78,6 +91,19 @@ export function DraftPicker({ drafts, writeReviewUrl, handoffUrl, testing = fals
 
       {showOr && (
         <p className="text-center text-sm text-zinc-400">OR</p>
+      )}
+
+      {copiedId && anotherSetLabel && (
+        <Button
+          variant="outline"
+          className="w-full py-3"
+          onClick={() => {
+            setCopiedId(null);
+            onAnotherSet?.();
+          }}
+        >
+          {anotherSetLabel}
+        </Button>
       )}
 
       <Button
