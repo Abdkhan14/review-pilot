@@ -34,10 +34,6 @@ export default async function DemoPage({
   const writeReviewUrl = place.writeReviewUrl ?? buildWriteReviewUrl(place.placeId);
   const now = new Date();
 
-  if (plan === "basic") {
-    redirect(writeReviewUrl);
-  }
-
   if (isExpired(session, now) || place.blocked) {
     return (
       <main className="px-4 py-10">
@@ -47,6 +43,10 @@ export default async function DemoPage({
     );
   }
 
+  if (plan === "basic") {
+    redirect(writeReviewUrl);
+  }
+
   const limits = await getLimits(db);
   const left = triesLeft(place, limits);
 
@@ -54,7 +54,7 @@ export default async function DemoPage({
     return (
       <main className="px-4 py-10">
         <h1 className="pb-6 text-lg font-semibold">{place.name}</h1>
-        <UsedUpDemo shopName={place.name} writeReviewUrl={writeReviewUrl} />
+        <UsedUpDemo shopName={place.name} />
       </main>
     );
   }

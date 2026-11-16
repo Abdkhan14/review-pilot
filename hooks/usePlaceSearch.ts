@@ -17,7 +17,7 @@ type State =
 
 type Settled = Extract<State, { status: "results" | "error" }>;
 
-const DEBOUNCE_MS = 400;
+const DEBOUNCE_MS = 250;
 const MIN_QUERY_LENGTH = 2;
 
 export function usePlaceSearch() {

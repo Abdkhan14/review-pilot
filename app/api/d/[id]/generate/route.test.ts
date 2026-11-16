@@ -167,4 +167,14 @@ describe("POST /api/d/[id]/generate", () => {
     const body = await res.json();
     expect(body.triesLeft).toBe(2); // 5 - 3
   });
+
+  it("uses the shop's own generationLimit when set", async () => {
+    const customPlace = { ...PLACE, generationLimit: 10, generationsUsed: 5 };
+    mockFindSession.mockResolvedValue({ ...SESSION, place: customPlace });
+    mockDb.demoPlace = { findUnique: vi.fn().mockResolvedValue({ ...customPlace, generationsUsed: 6 }) };
+    const res = await POST(makePost(), { params: Promise.resolve({ id: "sess1" }) });
+    expect(mockReserve).toHaveBeenCalledWith(expect.anything(), "sess1", "ChIJabc", 10);
+    const body = await res.json();
+    expect(body.triesLeft).toBe(4); // 10 - 6
+  });
 });

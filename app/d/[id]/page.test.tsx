@@ -89,6 +89,16 @@ describe("DemoPage", () => {
     );
   });
 
+  it("shows ExpiredDemo instead of redirecting when session is expired with ?plan=basic", async () => {
+    mockFindSession.mockResolvedValue({
+      ...SESSION,
+      expiresAt: new Date(Date.now() - 1000),
+    });
+    const el = await DemoPage(makeParams("sess1", "basic"));
+    render(el);
+    expect(screen.getByTestId("expired-demo")).toBeDefined();
+  });
+
   it("renders ExpiredDemo when session is expired", async () => {
     mockFindSession.mockResolvedValue({
       ...SESSION,

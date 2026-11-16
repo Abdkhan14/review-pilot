@@ -123,6 +123,17 @@ describe("DemoWidget", () => {
     expect(screen.queryByText("Your demo QR code")).toBeNull();
   });
 
+  it("hides tries count when Basic is selected", () => {
+    mockUseCreateDemo.mockReturnValue({
+      ...IDLE_DEMO,
+      state: { status: "result", data: RESULT_DATA },
+    });
+    render(<DemoWidget />);
+    expect(screen.getByText("4 tries left")).toBeDefined();
+    fireEvent.click(screen.getByRole("button", { name: "Basic" }));
+    expect(screen.queryByText("4 tries left")).toBeNull();
+  });
+
   it("swaps link when Basic is selected on result card", () => {
     mockUseCreateDemo.mockReturnValue({
       ...IDLE_DEMO,

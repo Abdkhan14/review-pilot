@@ -100,10 +100,12 @@ export function DemoResult({ result, onMakeAnother }: Props) {
       </div>
 
       <div className="flex items-center justify-between gap-4">
-        <span className="text-xs text-zinc-500">
-          {result.triesLeft} {result.triesLeft === 1 ? "try" : "tries"} left
-        </span>
-        <Button variant="outline" size="sm" onClick={onMakeAnother}>
+        {mode === "assisted" && (
+          <span className="text-xs text-zinc-500">
+            {result.triesLeft} {result.triesLeft === 1 ? "try" : "tries"} left
+          </span>
+        )}
+        <Button variant="outline" size="sm" className="ml-auto" onClick={onMakeAnother}>
           Make another
         </Button>
       </div>

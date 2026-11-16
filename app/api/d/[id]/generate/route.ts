@@ -4,7 +4,7 @@ import { isNewLandingEnabled } from "@/lib/flags";
 import { ipFromHeaders, rateLimitKey, checkRateLimit } from "@/lib/rate-limit";
 import { db } from "@/lib/db";
 import { getLimits } from "@/lib/settings";
-import { isExpired, triesLeft } from "@/lib/demo";
+import { isExpired, placeLimit, triesLeft } from "@/lib/demo";
 import { findSession } from "@/lib/demo-repo";
 import { reserveGeneration, releaseGeneration, siteGenerationsToday } from "@/lib/usage";
 import { snapshotFromBusiness } from "@/lib/place-snapshot";
@@ -48,7 +48,7 @@ export async function POST(
     return NextResponse.json({ error: "busy" }, { status: 503 });
   }
 
-  const limit = limits["demo.generationsPerPlace"];
+  const limit = placeLimit(session.place, limits);
   const reserved = await reserveGeneration(db, session.id, session.placeId, limit);
   if (!reserved) {
     return NextResponse.json({ error: "used_up" }, { status: 409 });
@@ -75,7 +75,7 @@ export async function POST(
       reviews,
       writeReviewUrl:
         session.place.writeReviewUrl ?? buildWriteReviewUrl(session.place.placeId),
-      triesLeft: freshPlace ? Math.max(0, limit - freshPlace.generationsUsed) : 0,
+      triesLeft: freshPlace ? triesLeft(freshPlace, limits) : 0,
     });
   } catch (err) {
     await releaseGeneration(db, session.id, session.placeId);

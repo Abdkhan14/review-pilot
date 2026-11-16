@@ -35,15 +35,15 @@ describe("usePlaceSearch", () => {
     vi.useRealTimers();
   });
 
-  it("searches after 400ms debounce and returns results", async () => {
+  it("searches after 250ms debounce and returns results", async () => {
     vi.useFakeTimers();
     const { result } = renderHook(() => usePlaceSearch());
     act(() => { result.current.setQuery("Joe"); });
-    // Not called yet at 300ms
-    await act(() => vi.advanceTimersByTimeAsync(300));
+    // Not called yet at 200ms
+    await act(() => vi.advanceTimersByTimeAsync(200));
     expect(mockPost).not.toHaveBeenCalled();
-    // Called after 400ms
-    await act(() => vi.advanceTimersByTimeAsync(100));
+    // Called after 250ms
+    await act(() => vi.advanceTimersByTimeAsync(50));
     expect(mockPost).toHaveBeenCalledOnce();
     expect(result.current.state).toMatchObject({ status: "results", places: [PLACE] });
     vi.useRealTimers();
@@ -68,7 +68,7 @@ describe("usePlaceSearch", () => {
     const tokenBefore = result.current.sessionToken;
 
     act(() => { result.current.setQuery("Joe"); });
-    await act(() => vi.advanceTimersByTimeAsync(400));
+    await act(() => vi.advanceTimersByTimeAsync(250));
     act(() => { result.current.setQuery(""); });
     expect(result.current.sessionToken).toBe(tokenBefore);
 
@@ -87,11 +87,11 @@ describe("usePlaceSearch", () => {
 
     const { result } = renderHook(() => usePlaceSearch());
     act(() => { result.current.setQuery("Jo"); });
-    await act(() => vi.advanceTimersByTimeAsync(400));
+    await act(() => vi.advanceTimersByTimeAsync(250));
 
     // Before the first promise resolves, type more
     act(() => { result.current.setQuery("Joe's"); });
-    await act(() => vi.advanceTimersByTimeAsync(400));
+    await act(() => vi.advanceTimersByTimeAsync(250));
 
     // Now resolve the stale first call
     act(() => { resolveFirst({ data: { places: [] } }); });
