@@ -15,14 +15,31 @@ type Props = {
   handoffUrl?: string;
   writeReviewUrl: string;
   testing?: boolean;
+  /** Called after each successful generation with the response data. */
+  onGenerated?: (data: { triesLeft?: number }) => void;
+  /** When set, shows a "Try another set" button in the copied state.
+   *  Pass an empty string to hide the button (0 tries left). */
+  anotherSetLabel?: string;
 };
 
 type GenerateResponse = {
   reviews: Draft[];
   writeReviewUrl?: string | null;
+  triesLeft?: number;
 };
 
-export function ScanDrafts({ apiBase, handoffUrl, writeReviewUrl, testing = false }: Props) {
+function fetchGeneration(url: string): Promise<GenerateResponse> {
+  return api.post<GenerateResponse>(url).then((r) => r.data);
+}
+
+export function ScanDrafts({
+  apiBase,
+  handoffUrl,
+  writeReviewUrl,
+  testing = false,
+  onGenerated,
+  anotherSetLabel,
+}: Props) {
   const [drafts, setDrafts] = useState<Draft[]>([]);
   const [url, setUrl] = useState(writeReviewUrl);
   const [loading, setLoading] = useState(true);
@@ -32,6 +49,9 @@ export function ScanDrafts({ apiBase, handoffUrl, writeReviewUrl, testing = fals
   const [attempt, setAttempt] = useState(0);
   // Captured at generate start — the timer counts from when the user lands.
   const startRef = useRef<number>(Date.now());
+  // One promise per (apiBase, attempt). React Strict Mode mounts effects twice
+  // with the same deps; reusing the same promise means only one POST is sent.
+  const inflightRef = useRef<{ key: string; promise: Promise<GenerateResponse> } | null>(null);
 
   // Tick every 100ms while loading; clears automatically when loading ends.
   useEffect(() => {
@@ -45,37 +65,41 @@ export function ScanDrafts({ apiBase, handoffUrl, writeReviewUrl, testing = fals
   useEffect(() => {
     let cancelled = false;
 
-    // Reset the progress window at the start of each attempt.
     startRef.current = Date.now();
     setElapsedMs(0);
     setLoading(true);
 
-    async function load() {
-      try {
-        const generateUrl = testing ? `${apiBase}?testing=true` : apiBase;
-        const res = await api.post<GenerateResponse>(generateUrl);
+    const generateUrl = testing ? `${apiBase}?testing=true` : apiBase;
+    const key = `${generateUrl}:${attempt}`;
+
+    if (inflightRef.current?.key !== key) {
+      inflightRef.current = { key, promise: fetchGeneration(generateUrl) };
+    }
+
+    inflightRef.current.promise
+      .then((data) => {
         if (cancelled) return;
-        setDrafts(res.data.reviews);
-        if (res.data.writeReviewUrl) setUrl(res.data.writeReviewUrl);
+        setDrafts(data.reviews);
+        if (data.writeReviewUrl) setUrl(data.writeReviewUrl);
         setGenerateFailed(false);
-      } catch (err: unknown) {
+        onGenerated?.({ triesLeft: data.triesLeft });
+      })
+      .catch((err: unknown) => {
         if (cancelled) return;
-        const status = (err as { response?: { status?: number } })?.response
-          ?.status;
+        const status = (err as { response?: { status?: number } })?.response?.status;
         const isRateLimited = status === 429;
         setRateLimited(isRateLimited);
         setGenerateFailed(!isRateLimited);
         setDrafts([]);
-      } finally {
+      })
+      .finally(() => {
         if (!cancelled) setLoading(false);
-      }
-    }
+      });
 
-    load();
     return () => {
       cancelled = true;
     };
-  }, [apiBase, attempt]);
+  }, [apiBase, attempt, testing]);
 
   if (loading) {
     return (
@@ -96,6 +120,8 @@ export function ScanDrafts({ apiBase, handoffUrl, writeReviewUrl, testing = fals
       testing={testing}
       generateFailed={generateFailed}
       rateLimited={rateLimited}
+      anotherSetLabel={anotherSetLabel}
+      onAnotherSet={() => setAttempt((n) => n + 1)}
     />
   );
 }

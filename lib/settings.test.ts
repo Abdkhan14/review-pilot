@@ -35,6 +35,11 @@ describe("getLimits", () => {
     expect(limits["trial.generationLimit"]).toBe(5);
   });
 
+  it("demo.generationsPerPlace defaults to 5", async () => {
+    const limits = await getLimits(db);
+    expect(limits["demo.generationsPerPlace"]).toBe(5);
+  });
+
   it("overrides a single key when stored in the database", async () => {
     await db.appSetting.upsert({
       where: { key: "assisted.dailyHandoffLimit" },

@@ -1,4 +1,5 @@
 /// @vitest-environment jsdom
+import React from "react";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, waitFor, cleanup, fireEvent, act } from "@testing-library/react";
 
@@ -91,6 +92,19 @@ describe("ScanDrafts", () => {
     });
     expect(screen.getByText(/oops/i)).toBeDefined();
     expect(screen.getByRole("button", { name: /regenerate/i })).toBeDefined();
+  });
+
+  it("sends exactly one POST when rendered inside React.StrictMode", async () => {
+    mockPost.mockResolvedValue({
+      data: { reviews: REVIEWS, writeReviewUrl: REVIEW_URL },
+    });
+    render(
+      <React.StrictMode>
+        <ScanDrafts apiBase="/api/b/joes-pizza-ab12/generate" writeReviewUrl={REVIEW_URL} />
+      </React.StrictMode>
+    );
+    await waitFor(() => screen.getByText("Great pasta!"));
+    expect(mockPost).toHaveBeenCalledOnce();
   });
 
   it("fires a second POST and hides the Oops message when Regenerate is clicked", async () => {

@@ -37,3 +37,33 @@ model AppSetting {
   value     String
   updatedAt DateTime @updatedAt
 }
+
+// SQLite does not support enums; app code enforces the allowed actions.
+// Details is stored as a JSON string, same as Business.details.
+
+model DemoPlace {
+  placeId          String        @id
+  name             String
+  writeReviewUrl   String?       // googleMapsLinks.writeAReviewUri from Places API (New)
+  details          String?       // JSON string of normalized PlaceSnapshot
+  detailsFetchedAt DateTime?
+  generationsUsed  Int           @default(0)
+  generationLimit  Int?          // null = demo.generationsPerPlace
+  blocked          Boolean       @default(false)
+  createdAt        DateTime      @default(now())
+  sessions         DemoSession[]
+}
+
+model DemoSession {
+  id                 String    @id
+  placeId            String
+  place              DemoPlace @relation(fields: [placeId], references: [placeId], onDelete: Cascade)
+  customInstructions String?
+  ipHash             String
+  generations        Int       @default(0)
+  createdAt          DateTime  @default(now())
+  expiresAt          DateTime
+
+  @@index([ipHash, createdAt])
+  @@index([createdAt])
+}
