@@ -8,6 +8,11 @@ import { stepIndexAt, progressPctAt, GENERATE_PROGRESS_MS } from "@/lib/generate
 
 type Draft = { id: string; text: string };
 
+/** Label for the copied-state "Try another set" button; empty hides it once no tries are left. */
+export function anotherSetLabel(triesLeft: number): string {
+  return triesLeft > 0 ? `Try another set (${triesLeft} left)` : "";
+}
+
 type Props = {
   /** Full generate endpoint URL, e.g. /api/b/{slug}/generate */
   apiBase: string;

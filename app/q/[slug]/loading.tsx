@@ -1,0 +1,10 @@
+import { GenerateProgress } from "@/components/scan/DraftsSkeleton";
+
+export default function Loading() {
+  return (
+    <main>
+      <h1 className="pb-6 text-lg font-semibold">Pick a review to share</h1>
+      <GenerateProgress activeIndex={0} progressPct={0} />
+    </main>
+  );
+}

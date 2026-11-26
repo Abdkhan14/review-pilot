@@ -2,7 +2,7 @@
 
 import { useState, Suspense } from "react";
 import { DemoBar } from "./DemoBar";
-import { ScanDrafts } from "@/components/scan/ScanDrafts";
+import { ScanDrafts, anotherSetLabel } from "@/components/scan/ScanDrafts";
 
 type Props = {
   demoId: string;
@@ -13,9 +13,6 @@ type Props = {
 
 export function DemoScan({ demoId, shopName, initialTriesLeft, writeReviewUrl }: Props) {
   const [triesLeft, setTriesLeft] = useState(initialTriesLeft);
-
-  const anotherSetLabel =
-    triesLeft > 0 ? `Try another set (${triesLeft} left)` : "";
 
   return (
     <div className="flex flex-col">
@@ -30,7 +27,7 @@ export function DemoScan({ demoId, shopName, initialTriesLeft, writeReviewUrl }:
           onGenerated={({ triesLeft: left }) => {
             if (left !== undefined) setTriesLeft(left);
           }}
-          anotherSetLabel={anotherSetLabel}
+          anotherSetLabel={anotherSetLabel(triesLeft)}
         />
       </div>
     </div>
