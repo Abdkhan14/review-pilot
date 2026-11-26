@@ -2,7 +2,18 @@ import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { execSync } from "child_process";
 import { PrismaClient } from "@prisma/client";
 import { rmSync } from "fs";
-import { create, findById, findBySlug, list, update, remove } from "./business-repo";
+import {
+  create,
+  createTrialQr,
+  findById,
+  findBySlug,
+  findOwned,
+  findOwnedBySlug,
+  list,
+  listOwned,
+  update,
+  remove,
+} from "./business-repo";
 
 const DB_PATH = `./prisma/test-business-${Date.now()}.db`;
 const DB_URL = `file:${DB_PATH}`;
@@ -140,5 +151,53 @@ describe("remove", () => {
 
     const found = await findById(db, biz.id);
     expect(found).toBeNull();
+  });
+});
+
+describe("owned QRs", () => {
+  const trialInput = (ownerId: string, name: string) => ({
+    ownerId,
+    name,
+    placeId: `ChIJ_${name}`,
+    writeReviewUrl: "https://search.google.com/local/writereview?placeid=x",
+    details: "{}",
+    detailsFetchedAt: new Date(),
+  });
+
+  beforeAll(async () => {
+    await db.user.createMany({
+      data: [
+        { id: "usr_maria", name: "Maria", email: "maria@joespizza.com" },
+        { id: "usr_sam", name: "Sam", email: "sam@bluebarber.com" },
+      ],
+    });
+  });
+
+  it("starts the trial and marks the account's trial as used", async () => {
+    const qr = await createTrialQr(db, trialInput("usr_maria", "Joe's Pizza"));
+    expect(qr).toMatchObject({ ownerId: "usr_maria", tier: "OWNED", trialGenerations: 0 });
+    expect(qr?.trialStartedAt).toBeInstanceOf(Date);
+    const user = await db.user.findUnique({ where: { id: "usr_maria" } });
+    expect(user?.trialUsedAt).toBeInstanceOf(Date);
+  });
+
+  it("refuses a second trial on the same account and creates nothing", async () => {
+    const before = await db.business.count({ where: { ownerId: "usr_maria" } });
+    expect(await createTrialQr(db, trialInput("usr_maria", "Joe's Pizza Uptown"))).toBeNull();
+    expect(await db.business.count({ where: { ownerId: "usr_maria" } })).toBe(before);
+  });
+
+  it("only finds a QR for its own owner", async () => {
+    const [qr] = await listOwned(db, "usr_maria");
+    expect(await findOwned(db, qr.id, "usr_maria")).not.toBeNull();
+    expect(await findOwned(db, qr.id, "usr_sam")).toBeNull();
+    expect(await listOwned(db, "usr_sam")).toEqual([]);
+  });
+
+  it("finds owned QRs by slug but not businesses made in admin", async () => {
+    const [qr] = await listOwned(db, "usr_maria");
+    const adminMade = await create(db, { name: "Sunrise Cafe", placeId: "ChIJ_sun", tier: "SAAS" });
+    expect((await findOwnedBySlug(db, qr.slug))?.id).toBe(qr.id);
+    expect(await findOwnedBySlug(db, adminMade.slug)).toBeNull();
   });
 });
