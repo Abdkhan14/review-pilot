@@ -1,22 +1,20 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
-vi.mock("@/lib/admin-cookie", () => ({
-  hasAdminCookie: vi.fn(),
-}));
+vi.mock("@/lib/session", () => ({ getSessionUser: vi.fn() }));
 
-import { hasAdminCookie } from "@/lib/admin-cookie";
-import { isNewLandingEnabled, isSelfServeEnabled, isViewer } from "./flags";
-import type { CookieReader } from "./admin-cookie";
+import { getSessionUser, type SessionUser } from "@/lib/session";
+import { isNewLandingEnabled, isSelfServeEnabled } from "./flags";
 
-const mockHasAdminCookie = vi.mocked(hasAdminCookie);
+const mockSession = vi.mocked(getSessionUser);
+const headers = new Headers();
 
-const emptyCookies: CookieReader = { get: () => undefined };
+function user(overrides: Partial<SessionUser>): SessionUser {
+  return { id: "u1", name: "Maria", email: "maria@joespizza.com", role: "user", ...overrides };
+}
 
 beforeEach(() => {
-  mockHasAdminCookie.mockReset();
-  delete process.env.FF_NEW_LANDING;
-  delete process.env.FF_SELF_SERVE;
-  delete process.env.TESTER_EMAILS;
+  mockSession.mockReset();
+  mockSession.mockResolvedValue(null);
 });
 
 afterEach(() => {
@@ -25,63 +23,34 @@ afterEach(() => {
   delete process.env.TESTER_EMAILS;
 });
 
-describe("isNewLandingEnabled", () => {
-  it("returns false when env is unset and not an admin", async () => {
-    mockHasAdminCookie.mockResolvedValue(false);
-    expect(await isNewLandingEnabled(emptyCookies)).toBe(false);
+describe.each([
+  ["isNewLandingEnabled", isNewLandingEnabled, "FF_NEW_LANDING"],
+  ["isSelfServeEnabled", isSelfServeEnabled, "FF_SELF_SERVE"],
+] as const)("%s", (_name, isEnabled, envKey) => {
+  it("is off with no session and the env flag unset", async () => {
+    expect(await isEnabled(headers)).toBe(false);
   });
 
-  it("returns true when FF_NEW_LANDING=1", async () => {
-    process.env.FF_NEW_LANDING = "1";
-    mockHasAdminCookie.mockResolvedValue(false);
-    expect(await isNewLandingEnabled(emptyCookies)).toBe(true);
+  it("follows the env flag when signed out", async () => {
+    process.env[envKey] = "1";
+    expect(await isEnabled(headers)).toBe(true);
   });
 
-  it("returns true when the caller has an admin cookie", async () => {
-    mockHasAdminCookie.mockResolvedValue(true);
-    expect(await isNewLandingEnabled(emptyCookies)).toBe(true);
-  });
-});
-
-describe("isSelfServeEnabled", () => {
-  it("returns false when env is unset and not an admin", async () => {
-    mockHasAdminCookie.mockResolvedValue(false);
-    expect(await isSelfServeEnabled(emptyCookies)).toBe(false);
+  it("is on for an admin session", async () => {
+    mockSession.mockResolvedValue(user({ role: "admin" }));
+    expect(await isEnabled(headers)).toBe(true);
   });
 
-  it("returns true when FF_SELF_SERVE=true", async () => {
-    process.env.FF_SELF_SERVE = "true";
-    mockHasAdminCookie.mockResolvedValue(false);
-    expect(await isSelfServeEnabled(emptyCookies)).toBe(true);
+  it("is on for a tester session", async () => {
+    process.env.TESTER_EMAILS = "maria@joespizza.com";
+    mockSession.mockResolvedValue(user({}));
+    expect(await isEnabled(headers)).toBe(true);
   });
 
-  it("returns true when the caller has an admin cookie", async () => {
-    mockHasAdminCookie.mockResolvedValue(true);
-    expect(await isSelfServeEnabled(emptyCookies)).toBe(true);
-  });
-});
-
-describe("isViewer", () => {
-  it("returns false when email is undefined", () => {
-    expect(isViewer(undefined)).toBe(false);
-  });
-
-  it("returns false when TESTER_EMAILS is not set", () => {
-    expect(isViewer("test@example.com")).toBe(false);
-  });
-
-  it("returns true when email is in TESTER_EMAILS", () => {
-    process.env.TESTER_EMAILS = "alice@example.com,bob@example.com";
-    expect(isViewer("alice@example.com")).toBe(true);
-  });
-
-  it("matches case-insensitively", () => {
-    process.env.TESTER_EMAILS = "Alice@Example.com";
-    expect(isViewer("alice@example.com")).toBe(true);
-  });
-
-  it("returns false when email is not in the list", () => {
-    process.env.TESTER_EMAILS = "alice@example.com";
-    expect(isViewer("bob@example.com")).toBe(false);
+  it("follows the env flag for a plain user", async () => {
+    mockSession.mockResolvedValue(user({}));
+    expect(await isEnabled(headers)).toBe(false);
+    process.env[envKey] = "true";
+    expect(await isEnabled(headers)).toBe(true);
   });
 });

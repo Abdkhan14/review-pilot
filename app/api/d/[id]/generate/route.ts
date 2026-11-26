@@ -18,7 +18,7 @@ export async function POST(
 ) {
   const { id } = await ctx.params;
 
-  if (!(await isNewLandingEnabled(req.cookies))) {
+  if (!(await isNewLandingEnabled(req.headers))) {
     return new NextResponse(null, { status: 404 });
   }
 

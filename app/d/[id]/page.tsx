@@ -2,7 +2,7 @@ import { notFound, redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { getLimits } from "@/lib/settings";
 import { isNewLandingEnabled } from "@/lib/flags";
-import { cookies } from "next/headers";
+import { headers } from "next/headers";
 import { findSession } from "@/lib/demo-repo";
 import { isExpired, triesLeft } from "@/lib/demo";
 import { buildWriteReviewUrl } from "@/lib/write-review-url";
@@ -19,8 +19,7 @@ export default async function DemoPage({
   params: Promise<{ id: string }>;
   searchParams: Promise<{ plan?: string }>;
 }) {
-  const cookieStore = await cookies();
-  if (!(await isNewLandingEnabled(cookieStore))) {
+  if (!(await isNewLandingEnabled(await headers()))) {
     notFound();
   }
 

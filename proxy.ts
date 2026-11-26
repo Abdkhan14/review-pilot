@@ -1,22 +1,34 @@
 import { NextRequest, NextResponse } from "next/server";
-import { resolveAdminGate } from "@/lib/admin-gate";
-import { hasAdminCookie } from "@/lib/admin-cookie";
+import { getSessionCookie } from "better-auth/cookies";
+import { accessLevel, protectedArea, resolveGate, type Access } from "@/lib/route-gate";
+import { getSessionUser } from "@/lib/session";
+
+/**
+ * Admin paths need the role, so they read the session. Owner paths only
+ * check the cookie exists; /app pages and routes do the full session check.
+ */
+async function accessFor(req: NextRequest): Promise<Access> {
+  if (protectedArea(req.nextUrl.pathname) === "owner") {
+    return getSessionCookie(req) ? "user" : "none";
+  }
+  return accessLevel(await getSessionUser(req.headers));
+}
 
 export async function proxy(req: NextRequest) {
-  const cookieValid = await hasAdminCookie(req.cookies);
-  const result = resolveAdminGate(req.nextUrl.pathname, cookieValid);
+  const result = resolveGate(req.nextUrl.pathname, await accessFor(req));
 
-  if (result.action === "redirect") {
-    return NextResponse.redirect(new URL(result.to, req.url));
+  switch (result.action) {
+    case "redirect":
+      return NextResponse.redirect(new URL(result.to, req.url));
+    case "unauthorized":
+      return new NextResponse(null, { status: 401 });
+    case "forbidden":
+      return new NextResponse(null, { status: 403 });
+    case "allow":
+      return NextResponse.next();
   }
-
-  if (result.action === "unauthorized") {
-    return new NextResponse(null, { status: 401 });
-  }
-
-  return NextResponse.next();
 }
 
 export const config = {
-  matcher: ["/admin/:path*", "/api/admin/:path*"],
+  matcher: ["/admin/:path*", "/api/admin/:path*", "/app/:path*", "/api/app/:path*"],
 };

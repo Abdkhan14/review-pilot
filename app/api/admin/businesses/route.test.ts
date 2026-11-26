@@ -1,19 +1,20 @@
 import { vi, describe, it, expect, beforeEach } from "vitest";
 
 vi.mock("server-only", () => ({}));
-vi.mock("@/lib/auth", () => ({ verifySession: vi.fn() }));
+vi.mock("@/lib/session", () => ({ getSessionUser: vi.fn() }));
 vi.mock("@/lib/business-repo", () => ({ create: vi.fn(), list: vi.fn() }));
 vi.mock("@/lib/db", () => ({ db: {} }));
 vi.mock("@/lib/places-details", () => ({ fetchPlaceDetails: vi.fn() }));
 
-import * as auth from "@/lib/auth";
+import { getSessionUser } from "@/lib/session";
 import * as repo from "@/lib/business-repo";
 import * as placesDetails from "@/lib/places-details";
 import { NextRequest } from "next/server";
 import { GET, POST } from "./route";
-import { ADMIN_COOKIE } from "@/lib/session-cookie";
 
-const mockVerify = vi.mocked(auth.verifySession);
+const mockSession = vi.mocked(getSessionUser);
+const ADMIN = { id: "u1", name: "Admin", email: "admin@example.com", role: "admin" };
+const USER = { id: "u2", name: "Maria", email: "maria@joespizza.com", role: "user" };
 const mockCreate = vi.mocked(repo.create);
 const mockList = vi.mocked(repo.list);
 const mockFetchPlaceDetails = vi.mocked(placesDetails.fetchPlaceDetails);
@@ -30,15 +31,12 @@ const MOCK_SNAPSHOT = {
   fetchedAt: "2026-09-20T00:00:00.000Z",
 };
 
-function makeGet(cookie?: string): NextRequest {
-  const headers: Record<string, string> = {};
-  if (cookie) headers["cookie"] = `${ADMIN_COOKIE}=${cookie}`;
-  return new NextRequest("http://localhost/api/admin/businesses", { headers });
+function makeGet(): NextRequest {
+  return new NextRequest("http://localhost/api/admin/businesses");
 }
 
-function postBody(body: unknown, cookie?: string): Promise<Response> {
+function postBody(body: unknown): Promise<Response> {
   const headers: Record<string, string> = { "Content-Type": "application/json" };
-  if (cookie) headers["cookie"] = `${ADMIN_COOKIE}=${cookie}`;
   const req = new NextRequest("http://localhost/api/admin/businesses", {
     method: "POST",
     headers,
@@ -48,35 +46,38 @@ function postBody(body: unknown, cookie?: string): Promise<Response> {
 }
 
 describe("GET /api/admin/businesses", () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockSession.mockResolvedValue(null);
+  });
 
-  it("returns 401 without cookie", async () => {
+  it("returns 401 when signed out", async () => {
     const res = await GET(makeGet());
     expect(res.status).toBe(401);
     expect(mockList).not.toHaveBeenCalled();
   });
 
-  it("returns 401 with an invalid cookie", async () => {
-    mockVerify.mockRejectedValue(new Error("bad token"));
-    const res = await GET(makeGet("bad-token"));
-    expect(res.status).toBe(401);
+  it("returns 403 for a signed-in non-admin", async () => {
+    mockSession.mockResolvedValue(USER);
+    const res = await GET(makeGet());
+    expect(res.status).toBe(403);
     expect(mockList).not.toHaveBeenCalled();
   });
 
   it("returns 200 with an empty array when there are no rows", async () => {
-    mockVerify.mockResolvedValue({ role: "admin" });
+    mockSession.mockResolvedValue(ADMIN);
     mockList.mockResolvedValue([]);
-    const res = await GET(makeGet("valid-token"));
+    const res = await GET(makeGet());
     expect(res.status).toBe(200);
     expect(await res.json()).toEqual([]);
   });
 
   it("returns 200 with name, tier, slug for each row", async () => {
-    mockVerify.mockResolvedValue({ role: "admin" });
+    mockSession.mockResolvedValue(ADMIN);
     mockList.mockResolvedValue([
       { id: "cuid1", slug: "joes-pizza-ab12", name: "Joe's Pizza", tier: "BASIC", placeId: "ChIJ123", customInstructions: null, details: null, detailsFetchedAt: null, createdAt: new Date() } as any,
     ]);
-    const res = await GET(makeGet("valid-token"));
+    const res = await GET(makeGet());
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(body).toHaveLength(1);
@@ -85,53 +86,54 @@ describe("GET /api/admin/businesses", () => {
 });
 
 describe("POST /api/admin/businesses", () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockSession.mockResolvedValue(null);
+  });
 
-  it("returns 401 without cookie", async () => {
+  it("returns 401 when signed out", async () => {
     const res = await postBody({ name: "Joe's Pizza", placeId: "ChIJ123", tier: "BASIC" });
     expect(res.status).toBe(401);
     expect(mockCreate).not.toHaveBeenCalled();
   });
 
-  it("returns 401 with an invalid cookie", async () => {
-    mockVerify.mockRejectedValue(new Error("bad token"));
+  it("returns 403 for a signed-in non-admin", async () => {
+    mockSession.mockResolvedValue(USER);
     const res = await postBody(
-      { name: "Joe's Pizza", placeId: "ChIJ123", tier: "BASIC" },
-      "bad-token"
+      { name: "Joe's Pizza", placeId: "ChIJ123", tier: "BASIC" }
     );
-    expect(res.status).toBe(401);
+    expect(res.status).toBe(403);
     expect(mockCreate).not.toHaveBeenCalled();
   });
 
   it("returns 400 on missing name", async () => {
-    mockVerify.mockResolvedValue({ role: "admin" });
-    const res = await postBody({ placeId: "ChIJ123", tier: "BASIC" }, "valid-token");
+    mockSession.mockResolvedValue(ADMIN);
+    const res = await postBody({ placeId: "ChIJ123", tier: "BASIC" });
     expect(res.status).toBe(400);
     expect(mockCreate).not.toHaveBeenCalled();
   });
 
   it("returns 400 on missing placeId", async () => {
-    mockVerify.mockResolvedValue({ role: "admin" });
-    const res = await postBody({ name: "Joe's Pizza", tier: "BASIC" }, "valid-token");
+    mockSession.mockResolvedValue(ADMIN);
+    const res = await postBody({ name: "Joe's Pizza", tier: "BASIC" });
     expect(res.status).toBe(400);
     expect(mockCreate).not.toHaveBeenCalled();
   });
 
   it("returns 400 on missing tier", async () => {
-    mockVerify.mockResolvedValue({ role: "admin" });
-    const res = await postBody({ name: "Joe's Pizza", placeId: "ChIJ123" }, "valid-token");
+    mockSession.mockResolvedValue(ADMIN);
+    const res = await postBody({ name: "Joe's Pizza", placeId: "ChIJ123" });
     expect(res.status).toBe(400);
     expect(mockCreate).not.toHaveBeenCalled();
   });
 
   it("returns 201, calls create without slug, returns the server slug", async () => {
-    mockVerify.mockResolvedValue({ role: "admin" });
+    mockSession.mockResolvedValue(ADMIN);
     mockFetchPlaceDetails.mockResolvedValue(MOCK_SNAPSHOT as any);
     mockCreate.mockResolvedValue({ slug: "joes-pizza-ab12" } as any);
 
     const res = await postBody(
-      { name: "Joe's Pizza", placeId: "ChIJ123", tier: "BASIC", slug: "client-slug" },
-      "valid-token"
+      { name: "Joe's Pizza", placeId: "ChIJ123", tier: "BASIC", slug: "client-slug" }
     );
 
     expect(res.status).toBe(201);
@@ -142,13 +144,12 @@ describe("POST /api/admin/businesses", () => {
   });
 
   it("persists writeReviewUrl, details, and detailsFetchedAt from Places snapshot", async () => {
-    mockVerify.mockResolvedValue({ role: "admin" });
+    mockSession.mockResolvedValue(ADMIN);
     mockFetchPlaceDetails.mockResolvedValue(MOCK_SNAPSHOT as any);
     mockCreate.mockResolvedValue({ slug: "joes-pizza-ab12" } as any);
 
     await postBody(
-      { name: "Joe's Pizza", placeId: "ChIJ123", tier: "BASIC" },
-      "valid-token"
+      { name: "Joe's Pizza", placeId: "ChIJ123", tier: "BASIC" }
     );
 
     const [, callInput] = mockCreate.mock.calls[0];
@@ -158,12 +159,11 @@ describe("POST /api/admin/businesses", () => {
   });
 
   it("returns 502 when Places API call fails", async () => {
-    mockVerify.mockResolvedValue({ role: "admin" });
+    mockSession.mockResolvedValue(ADMIN);
     mockFetchPlaceDetails.mockRejectedValue(new Error("Places API error 400"));
 
     const res = await postBody(
-      { name: "Joe's Pizza", placeId: "ChIJ123", tier: "BASIC" },
-      "valid-token"
+      { name: "Joe's Pizza", placeId: "ChIJ123", tier: "BASIC" }
     );
 
     expect(res.status).toBe(502);
