@@ -7,6 +7,8 @@ import {
   releaseGeneration,
   reserveTrialGeneration,
   releaseTrialGeneration,
+  recordTrialHandoff,
+  recordDailyHandoff,
   visitorSessionsToday,
   siteGenerationsToday,
 } from "./usage";
@@ -210,5 +212,52 @@ describe("releaseTrialGeneration", () => {
     await releaseTrialGeneration(db, "trial-l1");
     await releaseTrialGeneration(db, "trial-l1");
     expect(await trialGenerationsOf("trial-l1")).toBe(0);
+  });
+});
+
+describe("recordTrialHandoff", () => {
+  it("counts until the limit, then refuses", async () => {
+    await seedTrialQr("trial-h1", 0);
+    expect(await recordTrialHandoff(db, "trial-h1", 2)).toBe(true);
+    expect(await recordTrialHandoff(db, "trial-h1", 2)).toBe(true);
+    expect(await recordTrialHandoff(db, "trial-h1", 2)).toBe(false);
+    expect((await db.business.findUniqueOrThrow({ where: { id: "trial-h1" } })).trialHandoffs).toBe(2);
+  });
+});
+
+describe("recordDailyHandoff", () => {
+  const NOV_22 = new Date("2026-11-22T12:00:00Z");
+  const NOV_23 = new Date("2026-11-23T09:00:00Z");
+
+  async function handoffRow(id: string) {
+    return db.businessHandoff.findUnique({ where: { businessId: id } });
+  }
+
+  it("starts today's count, counts up to the cap, then refuses", async () => {
+    await seedTrialQr("daily-1", 0);
+    expect(await recordDailyHandoff(db, "daily-1", 2, NOV_22)).toBe(true);
+    expect(await recordDailyHandoff(db, "daily-1", 2, NOV_22)).toBe(true);
+    expect(await recordDailyHandoff(db, "daily-1", 2, NOV_22)).toBe(false);
+    expect(await handoffRow("daily-1")).toMatchObject({ count: 2, day: "2026-11-22" });
+  });
+
+  it("resets to 1 on the first handoff of a new day", async () => {
+    await recordDailyHandoff(db, "daily-1", 2, NOV_23);
+    expect(await handoffRow("daily-1")).toMatchObject({ count: 1, day: "2026-11-23" });
+  });
+
+  it("lets only cap-many of several simultaneous handoffs count", async () => {
+    await seedTrialQr("daily-2", 0);
+    const results = await Promise.all(
+      Array.from({ length: 5 }, () => recordDailyHandoff(db, "daily-2", 3, NOV_22)),
+    );
+    expect(results.filter(Boolean)).toHaveLength(3);
+    expect((await handoffRow("daily-2"))?.count).toBe(3);
+  });
+
+  it("keeps counting when the QR has no cap", async () => {
+    await seedTrialQr("daily-3", 0);
+    for (let i = 0; i < 8; i++) await recordDailyHandoff(db, "daily-3", null, NOV_22);
+    expect((await handoffRow("daily-3"))?.count).toBe(8);
   });
 });
