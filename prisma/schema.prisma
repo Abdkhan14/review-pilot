@@ -14,7 +14,7 @@ datasource db {
 model Business {
   id                 String           @id @default(cuid())
   slug               String           @unique
-  tier               String           // "BASIC" | "SAAS"
+  tier               String           // "BASIC" | "SAAS" for admin-made rows; "OWNED" for self-serve QRs
   name               String
   placeId            String
   customInstructions String?
@@ -23,6 +23,23 @@ model Business {
   detailsFetchedAt   DateTime?
   createdAt          DateTime         @default(now())
   handoff            BusinessHandoff?
+
+  // Self-serve QRs. ownerId is a plain column, not a relation: adding a relation
+  // makes Prisma rebuild the whole table on SQLite.
+  ownerId              String?
+  trialStartedAt       DateTime?
+  trialGenerations     Int       @default(0)
+  trialHandoffs        Int       @default(0)
+  dailyHandoffLimit    Int?      // null = assisted.dailyHandoffLimit
+  limitsDisabled       Boolean   @default(false)
+  basicPaidAt          DateTime? // never cleared, which is what makes Basic lifetime
+  stripeSubscriptionId String?   @unique
+  subscriptionStatus   String?   // copied from Stripe: "active" | "past_due" | "canceled" | ...
+  currentPeriodEnd     DateTime?
+  cancelAtPeriodEnd    Boolean   @default(false)
+  sponsoredPlan        String?   // "BASIC" | "ASSISTED", given free by an admin
+
+  @@index([ownerId])
 }
 
 model BusinessHandoff {
@@ -81,6 +98,8 @@ model User {
   banned        Boolean?  @default(false)
   banReason     String?
   banExpires    DateTime?
+  trialUsedAt      DateTime?
+  stripeCustomerId String?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
   sessions      Session[]

@@ -2,7 +2,7 @@ import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { execSync } from "child_process";
 import { PrismaClient } from "@prisma/client";
 import { rmSync } from "fs";
-import { getLimits, DEFAULT_LIMITS } from "./settings";
+import { getLimits, handoffCap, DEFAULT_LIMITS } from "./settings";
 
 const DB_PATH = `./prisma/test-settings-${Date.now()}.db`;
 const DB_URL = `file:${DB_PATH}`;
@@ -62,5 +62,21 @@ describe("getLimits", () => {
 
     const limits = await getLimits(db);
     expect(limits["demo.dailyGenerations"]).toBe(DEFAULT_LIMITS["demo.dailyGenerations"]);
+  });
+});
+
+describe("handoffCap", () => {
+  const limits = { ...DEFAULT_LIMITS, "assisted.dailyHandoffLimit": 8 };
+
+  it("uses the global setting when the QR has no override", () => {
+    expect(handoffCap({ dailyHandoffLimit: null, limitsDisabled: false }, limits)).toBe(8);
+  });
+
+  it("uses the QR's own limit when set", () => {
+    expect(handoffCap({ dailyHandoffLimit: 10, limitsDisabled: false }, limits)).toBe(10);
+  });
+
+  it("is null when limits are turned off for the QR", () => {
+    expect(handoffCap({ dailyHandoffLimit: 10, limitsDisabled: true }, limits)).toBeNull();
   });
 });

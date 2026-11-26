@@ -20,7 +20,7 @@ export default async function ScanPage({
   const { testing } = await searchParams;
   const isTesting = testing === "true";
   const business = await findBySlug(db, slug);
-  if (!business) notFound();
+  if (!business || business.ownerId) notFound();
 
   if (business.tier === "BASIC") {
     if (!business.writeReviewUrl) notFound();
