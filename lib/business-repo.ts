@@ -111,3 +111,18 @@ export type UpdateQrInput = {
 export async function updateQr(db: PrismaClient, id: string, input: UpdateQrInput) {
   return db.business.update({ where: { id }, data: input });
 }
+
+/**
+ * When the owner used their one free trial and on which QR. Null if they
+ * haven't; qrName is null when that QR has since been deleted.
+ */
+export async function findTrialUse(db: PrismaClient, ownerId: string) {
+  const user = await db.user.findUnique({ where: { id: ownerId }, select: { trialUsedAt: true } });
+  if (!user?.trialUsedAt) return null;
+  const qr = await db.business.findFirst({
+    where: { ownerId, trialStartedAt: { not: null } },
+    orderBy: { trialStartedAt: "asc" },
+    select: { name: true },
+  });
+  return { usedAt: user.trialUsedAt, qrName: qr?.name ?? null };
+}

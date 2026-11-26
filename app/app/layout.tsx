@@ -1,12 +1,9 @@
-import { headers } from "next/headers";
-import { redirect } from "next/navigation";
 import { Toaster } from "sonner";
-import { getSessionUser } from "@/lib/session";
+import { requireSignedIn } from "@/lib/session";
 import { AppHeader } from "@/components/app/AppHeader";
 
 export default async function OwnerLayout({ children }: { children: React.ReactNode }) {
-  const user = await getSessionUser(await headers());
-  if (!user) redirect("/sign-in?callbackURL=/app");
+  const user = await requireSignedIn("/app");
 
   return (
     <div className="flex min-h-dvh flex-col">

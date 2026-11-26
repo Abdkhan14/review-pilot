@@ -1,4 +1,4 @@
-type Variant = "default" | "outline" | "success";
+type Variant = "default" | "outline" | "success" | "danger";
 
 type Props = React.HTMLAttributes<HTMLSpanElement> & { variant?: Variant };
 
@@ -6,6 +6,7 @@ const variants: Record<Variant, string> = {
   default: "bg-zinc-900 text-zinc-50",
   outline: "border border-zinc-300 text-zinc-400",
   success: "border border-green-500 text-green-600",
+  danger: "border border-red-500 text-red-600",
 };
 
 export function Badge({ variant = "outline", className = "", children, ...props }: Props) {

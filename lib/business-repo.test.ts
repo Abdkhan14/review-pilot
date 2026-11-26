@@ -9,6 +9,7 @@ import {
   findBySlug,
   findOwned,
   findOwnedBySlug,
+  findTrialUse,
   list,
   listOwned,
   update,
@@ -192,6 +193,14 @@ describe("owned QRs", () => {
     expect(await findOwned(db, qr.id, "usr_maria")).not.toBeNull();
     expect(await findOwned(db, qr.id, "usr_sam")).toBeNull();
     expect(await listOwned(db, "usr_sam")).toEqual([]);
+  });
+
+  it("reports when and on which QR the trial was used", async () => {
+    expect(await findTrialUse(db, "usr_maria")).toEqual({
+      usedAt: expect.any(Date),
+      qrName: "Joe's Pizza",
+    });
+    expect(await findTrialUse(db, "usr_sam")).toBeNull();
   });
 
   it("finds owned QRs by slug but not businesses made in admin", async () => {
