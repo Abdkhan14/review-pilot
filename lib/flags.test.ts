@@ -5,7 +5,7 @@ vi.mock("@/lib/admin-cookie", () => ({
 }));
 
 import { hasAdminCookie } from "@/lib/admin-cookie";
-import { isNewLandingEnabled, isSelfServeEnabled, isViewer } from "./flags";
+import { isAdminEmail, isNewLandingEnabled, isSelfServeEnabled, isViewer } from "./flags";
 import type { CookieReader } from "./admin-cookie";
 
 const mockHasAdminCookie = vi.mocked(hasAdminCookie);
@@ -17,12 +17,14 @@ beforeEach(() => {
   delete process.env.FF_NEW_LANDING;
   delete process.env.FF_SELF_SERVE;
   delete process.env.TESTER_EMAILS;
+  delete process.env.ADMIN_EMAILS;
 });
 
 afterEach(() => {
   delete process.env.FF_NEW_LANDING;
   delete process.env.FF_SELF_SERVE;
   delete process.env.TESTER_EMAILS;
+  delete process.env.ADMIN_EMAILS;
 });
 
 describe("isNewLandingEnabled", () => {
@@ -83,5 +85,17 @@ describe("isViewer", () => {
   it("returns false when email is not in the list", () => {
     process.env.TESTER_EMAILS = "alice@example.com";
     expect(isViewer("bob@example.com")).toBe(false);
+  });
+});
+
+describe("isAdminEmail", () => {
+  it("returns true when email is in ADMIN_EMAILS, ignoring case and spaces", () => {
+    process.env.ADMIN_EMAILS = " Owner@Example.com , other@example.com";
+    expect(isAdminEmail("owner@example.com")).toBe(true);
+  });
+
+  it("returns false when email is not in ADMIN_EMAILS", () => {
+    process.env.ADMIN_EMAILS = "owner@example.com";
+    expect(isAdminEmail("tester@example.com")).toBe(false);
   });
 });
