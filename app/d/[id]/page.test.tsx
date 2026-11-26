@@ -2,7 +2,7 @@
 import { vi, describe, it, expect, beforeEach, afterEach } from "vitest";
 
 vi.mock("server-only", () => ({}));
-vi.mock("next/headers", () => ({ cookies: vi.fn() }));
+vi.mock("next/headers", () => ({ headers: vi.fn() }));
 vi.mock("next/navigation", () => ({ notFound: vi.fn(() => { throw new Error("NEXT_NOT_FOUND"); }), redirect: vi.fn((url: string) => { throw new Error(`NEXT_REDIRECT:${url}`); }) }));
 vi.mock("@/lib/db", () => ({ db: {} }));
 vi.mock("@/lib/flags", () => ({ isNewLandingEnabled: vi.fn() }));
@@ -12,14 +12,14 @@ vi.mock("@/components/demo/DemoScan", () => ({ DemoScan: () => <div data-testid=
 vi.mock("@/components/demo/ExpiredDemo", () => ({ ExpiredDemo: ({ shopName }: { shopName: string }) => <div data-testid="expired-demo">{shopName}</div> }));
 vi.mock("@/components/demo/UsedUpDemo", () => ({ UsedUpDemo: ({ shopName }: { shopName: string }) => <div data-testid="used-up-demo">{shopName}</div> }));
 
-import * as headers from "next/headers";
+import * as nextHeaders from "next/headers";
 import * as flags from "@/lib/flags";
 import * as settings from "@/lib/settings";
 import * as demoRepo from "@/lib/demo-repo";
 import { render, screen, cleanup } from "@testing-library/react";
 import DemoPage from "./page";
 
-const mockCookies = vi.mocked(headers.cookies);
+const mockHeaders = vi.mocked(nextHeaders.headers);
 const mockFlag = vi.mocked(flags.isNewLandingEnabled);
 const mockLimits = vi.mocked(settings.getLimits);
 const mockFindSession = vi.mocked(demoRepo.findSession);
@@ -67,7 +67,7 @@ afterEach(cleanup);
 
 describe("DemoPage", () => {
   beforeEach(() => {
-    mockCookies.mockResolvedValue({} as Awaited<ReturnType<typeof headers.cookies>>);
+    mockHeaders.mockResolvedValue(new Headers());
     mockFlag.mockResolvedValue(true);
     mockLimits.mockResolvedValue(LIMITS);
     mockFindSession.mockResolvedValue(SESSION);

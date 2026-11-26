@@ -11,7 +11,7 @@ const bodySchema = z.object({
 });
 
 export async function POST(req: NextRequest) {
-  if (!(await isNewLandingEnabled(req.cookies))) {
+  if (!(await isNewLandingEnabled(req.headers))) {
     return new NextResponse(null, { status: 404 });
   }
 

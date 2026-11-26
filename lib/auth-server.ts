@@ -5,7 +5,7 @@ import { APIError } from "better-auth/api";
 import { nextCookies } from "better-auth/next-js";
 import { admin } from "better-auth/plugins";
 import { db } from "@/lib/db";
-import { selfServeFlagOn } from "@/lib/flags";
+import { envFlagOn } from "@/lib/access";
 import { canSignUp } from "@/lib/sign-up";
 
 export const auth = betterAuth({
@@ -24,7 +24,7 @@ export const auth = betterAuth({
     user: {
       create: {
         before: async (user) => {
-          const decision = canSignUp(user.email, selfServeFlagOn());
+          const decision = canSignUp(user.email, envFlagOn("FF_SELF_SERVE"));
           // The OAuth callback forwards an APIError's code to the error page as ?error=<code>.
           if (!decision.allowed) {
             throw new APIError("FORBIDDEN", {

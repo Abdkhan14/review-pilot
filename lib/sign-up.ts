@@ -1,4 +1,4 @@
-import { isAdminEmail, isViewer } from "@/lib/flags";
+import { isAdminEmail, isViewer } from "@/lib/access";
 
 export const SIGNUPS_CLOSED = "signups_closed";
 

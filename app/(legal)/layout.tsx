@@ -1,12 +1,11 @@
-import { cookies } from "next/headers";
+import { headers } from "next/headers";
 import { isSelfServeEnabled } from "@/lib/flags";
 import { Nav } from "@/components/landing/Nav";
 import { Footer } from "@/components/landing/Footer";
 import { LegalTabs } from "./LegalTabs";
 
 export default async function LegalLayout({ children }: { children: React.ReactNode }) {
-  const cookieStore = await cookies();
-  const selfServe = await isSelfServeEnabled(cookieStore);
+  const selfServe = await isSelfServeEnabled(await headers());
 
   return (
     <div className="min-h-dvh flex flex-col">

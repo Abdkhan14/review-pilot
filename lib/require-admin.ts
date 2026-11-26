@@ -1,13 +1,14 @@
 import "server-only";
 import { NextRequest, NextResponse } from "next/server";
-import { hasAdminCookie } from "@/lib/admin-cookie";
+import { accessLevel } from "@/lib/admin-gate";
+import { getSessionUser } from "@/lib/session";
 
 /**
- * Returns a 401 NextResponse if the request carries no valid admin cookie,
- * otherwise returns null (proceed).
+ * Returns 401 when signed out, 403 when signed in without the admin role,
+ * otherwise null (proceed).
  */
-export async function requireAdmin(
-  req: NextRequest
-): Promise<NextResponse | null> {
-  return (await hasAdminCookie(req.cookies)) ? null : new NextResponse(null, { status: 401 });
+export async function requireAdmin(req: NextRequest): Promise<NextResponse | null> {
+  const access = accessLevel(await getSessionUser(req.headers));
+  if (access === "admin") return null;
+  return new NextResponse(null, { status: access === "none" ? 401 : 403 });
 }

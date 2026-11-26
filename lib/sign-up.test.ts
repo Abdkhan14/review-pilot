@@ -1,7 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-
-vi.mock("server-only", () => ({}));
-
+import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { canSignUp } from "./sign-up";
 
 beforeEach(() => {

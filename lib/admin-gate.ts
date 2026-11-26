@@ -1,33 +1,30 @@
+import type { SessionUser } from "@/lib/session";
+
+export type Access = "admin" | "user" | "none";
+
 export type GateResult =
   | { action: "allow" }
-  | { action: "redirect"; to: "/admin/login" }
-  | { action: "unauthorized" };
+  | { action: "redirect"; to: string }
+  | { action: "unauthorized" }
+  | { action: "forbidden" };
+
+/** What a session is allowed to do in the admin area. */
+export function accessLevel(user: SessionUser | null): Access {
+  if (!user) return "none";
+  return user.role === "admin" ? "admin" : "user";
+}
 
 /**
- * Pure routing decision for admin gate.
- * Called by proxy.ts with the verified-cookie boolean already resolved.
+ * Pure routing decision for the admin gate.
+ * Called by proxy.ts with the caller's access level already resolved.
  */
-export function resolveAdminGate(pathname: string, cookieValid: boolean): GateResult {
-  // Login page is always public — you need to reach it to authenticate
-  if (pathname === "/admin/login" || pathname.startsWith("/admin/login/")) {
-    return { action: "allow" };
-  }
+export function resolveAdminGate(pathname: string, access: Access): GateResult {
+  const isAdminPage = pathname === "/admin" || pathname.startsWith("/admin/");
+  const isAdminApi = pathname.startsWith("/api/admin/");
+  if (!isAdminPage && !isAdminApi) return { action: "allow" };
 
-  // Valid cookie → allow everything in the matcher
-  if (cookieValid) {
-    return { action: "allow" };
-  }
-
-  // No cookie: API admin routes → 401
-  if (pathname.startsWith("/api/admin")) {
-    return { action: "unauthorized" };
-  }
-
-  // No cookie: admin UI routes → redirect to login
-  if (pathname.startsWith("/admin")) {
-    return { action: "redirect", to: "/admin/login" };
-  }
-
-  // Anything else (e.g. /b/slug) that slips through the matcher → allow
-  return { action: "allow" };
+  if (access === "admin") return { action: "allow" };
+  if (access === "user") return { action: "forbidden" };
+  if (isAdminApi) return { action: "unauthorized" };
+  return { action: "redirect", to: `/sign-in?callbackURL=${encodeURIComponent(pathname)}` };
 }

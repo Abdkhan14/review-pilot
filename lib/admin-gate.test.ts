@@ -1,53 +1,43 @@
 import { describe, it, expect } from "vitest";
-import { resolveAdminGate } from "./admin-gate";
+import { accessLevel, resolveAdminGate } from "./admin-gate";
+
+describe("accessLevel", () => {
+  const base = { id: "u1", name: "Maria", email: "maria@joespizza.com" };
+
+  it("is none when signed out", () => {
+    expect(accessLevel(null)).toBe("none");
+  });
+
+  it("is admin for the admin role", () => {
+    expect(accessLevel({ ...base, role: "admin" })).toBe("admin");
+  });
+
+  it.each(["user", null])("is user for role %s", (role) => {
+    expect(accessLevel({ ...base, role })).toBe("user");
+  });
+});
 
 describe("resolveAdminGate", () => {
-  // login page is always public
-  it("allows /admin/login without cookie", () => {
-    expect(resolveAdminGate("/admin/login", false)).toEqual({ action: "allow" });
+  it.each(["/admin", "/admin/demos", "/api/admin/businesses"])("allows an admin on %s", (path) => {
+    expect(resolveAdminGate(path, "admin")).toEqual({ action: "allow" });
   });
 
-  it("allows /admin/login with cookie", () => {
-    expect(resolveAdminGate("/admin/login", true)).toEqual({ action: "allow" });
+  it.each(["/admin", "/api/admin/businesses"])("forbids a signed-in non-admin on %s", (path) => {
+    expect(resolveAdminGate(path, "user")).toEqual({ action: "forbidden" });
   });
 
-  // valid cookie → allow everything
-  it("allows /admin with valid cookie", () => {
-    expect(resolveAdminGate("/admin", true)).toEqual({ action: "allow" });
-  });
-
-  it("allows /admin/businesses with valid cookie", () => {
-    expect(resolveAdminGate("/admin/businesses", true)).toEqual({ action: "allow" });
-  });
-
-  it("allows /api/admin/businesses with valid cookie", () => {
-    expect(resolveAdminGate("/api/admin/businesses", true)).toEqual({ action: "allow" });
-  });
-
-  // no cookie on admin page → redirect
-  it("redirects /admin without cookie", () => {
-    expect(resolveAdminGate("/admin", false)).toEqual({
+  it("sends a signed-out visitor to sign-in and back to the page they asked for", () => {
+    expect(resolveAdminGate("/admin/demos", "none")).toEqual({
       action: "redirect",
-      to: "/admin/login",
+      to: "/sign-in?callbackURL=%2Fadmin%2Fdemos",
     });
   });
 
-  it("redirects /admin/businesses without cookie", () => {
-    expect(resolveAdminGate("/admin/businesses", false)).toEqual({
-      action: "redirect",
-      to: "/admin/login",
-    });
+  it("returns unauthorized for a signed-out admin API call", () => {
+    expect(resolveAdminGate("/api/admin/businesses", "none")).toEqual({ action: "unauthorized" });
   });
 
-  // no cookie on api/admin → 401
-  it("returns unauthorized for /api/admin/businesses without cookie", () => {
-    expect(resolveAdminGate("/api/admin/businesses", false)).toEqual({
-      action: "unauthorized",
-    });
-  });
-
-  // public routes stay public (matcher shouldn't call proxy here, but function documents it)
-  it("allows /b/joes-pizza-a3k9 without cookie", () => {
-    expect(resolveAdminGate("/b/joes-pizza-a3k9", false)).toEqual({ action: "allow" });
+  it("allows paths outside the admin area", () => {
+    expect(resolveAdminGate("/b/joes-pizza-a3k9", "none")).toEqual({ action: "allow" });
   });
 });

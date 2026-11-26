@@ -1,20 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
-import { resolveAdminGate } from "@/lib/admin-gate";
-import { hasAdminCookie } from "@/lib/admin-cookie";
+import { accessLevel, resolveAdminGate } from "@/lib/admin-gate";
+import { getSessionUser } from "@/lib/session";
 
 export async function proxy(req: NextRequest) {
-  const cookieValid = await hasAdminCookie(req.cookies);
-  const result = resolveAdminGate(req.nextUrl.pathname, cookieValid);
+  const access = accessLevel(await getSessionUser(req.headers));
+  const result = resolveAdminGate(req.nextUrl.pathname, access);
 
-  if (result.action === "redirect") {
-    return NextResponse.redirect(new URL(result.to, req.url));
+  switch (result.action) {
+    case "redirect":
+      return NextResponse.redirect(new URL(result.to, req.url));
+    case "unauthorized":
+      return new NextResponse(null, { status: 401 });
+    case "forbidden":
+      return new NextResponse(null, { status: 403 });
+    case "allow":
+      return NextResponse.next();
   }
-
-  if (result.action === "unauthorized") {
-    return new NextResponse(null, { status: 401 });
-  }
-
-  return NextResponse.next();
 }
 
 export const config = {

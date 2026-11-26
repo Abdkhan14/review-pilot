@@ -12,8 +12,6 @@ const NAV_ITEMS = [
 export function AdminNav() {
   const pathname = usePathname();
 
-  if (pathname === "/admin/login") return null;
-
   return (
     <nav className="border-b border-zinc-200 flex gap-1 items-start mb-6 -mx-4 px-4" aria-label="Admin navigation">
       {NAV_ITEMS.map(({ href, label, exact }) => {

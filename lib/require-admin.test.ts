@@ -1,38 +1,31 @@
 import { vi, describe, it, expect, beforeEach } from "vitest";
 
 vi.mock("server-only", () => ({}));
-vi.mock("@/lib/auth", () => ({ verifySession: vi.fn() }));
+vi.mock("@/lib/session", () => ({ getSessionUser: vi.fn() }));
 
-import * as auth from "@/lib/auth";
 import { NextRequest } from "next/server";
+import { getSessionUser } from "@/lib/session";
 import { requireAdmin } from "./require-admin";
-import { ADMIN_COOKIE } from "@/lib/session-cookie";
 
-const mockVerify = vi.mocked(auth.verifySession);
-
-function makeRequest(cookie?: string): NextRequest {
-  const headers: Record<string, string> = {};
-  if (cookie) headers["cookie"] = `${ADMIN_COOKIE}=${cookie}`;
-  return new NextRequest("http://localhost/api/admin/test", { headers });
-}
+const mockSession = vi.mocked(getSessionUser);
+const req = () => new NextRequest("http://localhost/api/admin/test");
+const maria = { id: "u1", name: "Maria", email: "maria@joespizza.com" };
 
 describe("requireAdmin", () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => mockSession.mockReset());
 
-  it("returns 401 when no cookie is present", async () => {
-    const res = await requireAdmin(makeRequest());
-    expect(res?.status).toBe(401);
+  it("returns 401 when signed out", async () => {
+    mockSession.mockResolvedValue(null);
+    expect((await requireAdmin(req()))?.status).toBe(401);
   });
 
-  it("returns 401 when the cookie is invalid", async () => {
-    mockVerify.mockRejectedValue(new Error("bad token"));
-    const res = await requireAdmin(makeRequest("bad-token"));
-    expect(res?.status).toBe(401);
+  it("returns 403 for a signed-in non-admin", async () => {
+    mockSession.mockResolvedValue({ ...maria, role: "user" });
+    expect((await requireAdmin(req()))?.status).toBe(403);
   });
 
-  it("returns null when the cookie is valid", async () => {
-    mockVerify.mockResolvedValue({ role: "admin" });
-    const res = await requireAdmin(makeRequest("valid-token"));
-    expect(res).toBeNull();
+  it("returns null for an admin", async () => {
+    mockSession.mockResolvedValue({ ...maria, role: "admin" });
+    expect(await requireAdmin(req())).toBeNull();
   });
 });

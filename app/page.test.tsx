@@ -3,7 +3,7 @@ import { render, screen, cleanup } from "@testing-library/react";
 import { expect, describe, it, vi, beforeEach } from "vitest";
 
 vi.mock("next/headers", () => ({
-  cookies: vi.fn().mockResolvedValue({ get: () => undefined }),
+  headers: vi.fn().mockResolvedValue(new Headers()),
 }));
 
 vi.mock("@/lib/flags", () => ({
