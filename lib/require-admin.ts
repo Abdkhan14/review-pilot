@@ -1,6 +1,6 @@
 import "server-only";
 import { NextRequest, NextResponse } from "next/server";
-import { accessLevel } from "@/lib/admin-gate";
+import { accessLevel } from "@/lib/route-gate";
 import { getSessionUser } from "@/lib/session";
 
 /**
