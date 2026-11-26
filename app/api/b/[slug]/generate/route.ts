@@ -15,7 +15,7 @@ export async function POST(
   const { slug } = await ctx.params;
 
   const business = await findBySlug(db, slug);
-  if (!business) return new NextResponse(null, { status: 404 });
+  if (!business || business.ownerId) return new NextResponse(null, { status: 404 });
   if (business.tier === "BASIC") return new NextResponse(null, { status: 403 });
 
   const ip = ipFromHeaders(_req.headers);

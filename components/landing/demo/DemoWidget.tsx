@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { usePlaceSearch, type PlaceSuggestion } from "@/hooks/usePlaceSearch";
 import { useCreateDemo } from "@/hooks/useCreateDemo";
-import { PlaceSearch } from "./PlaceSearch";
+import { PlaceSearch } from "@/components/places/PlaceSearch";
 import { DemoResult } from "./DemoResult";
 import { DemoQrPlaceholder } from "./DemoQrPlaceholder";
 import { DemoError } from "./DemoError";

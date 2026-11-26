@@ -3,8 +3,11 @@
 import { MapPin, Search } from "lucide-react";
 import { useRef } from "react";
 import type { PlaceSuggestion } from "@/hooks/usePlaceSearch";
+import { cn } from "@/lib/utils";
 
 type Props = {
+  label?: string;
+  invalid?: boolean;
   query: string;
   onQueryChange: (q: string) => void;
   suggestions: PlaceSuggestion[];
@@ -15,6 +18,8 @@ type Props = {
 };
 
 export function PlaceSearch({
+  label = "Your shop on Google",
+  invalid = false,
   query,
   onQueryChange,
   suggestions,
@@ -34,7 +39,7 @@ export function PlaceSearch({
   return (
     <div className="relative w-full">
       <label className="block text-sm font-semibold text-zinc-900 mb-1">
-        Your shop on Google
+        {label}
       </label>
 
       {selected ? (
@@ -53,7 +58,12 @@ export function PlaceSearch({
           </button>
         </div>
       ) : (
-        <div className="flex items-center gap-2.5 h-11 border border-zinc-300 rounded-md px-3 bg-white focus-within:border-zinc-900">
+        <div
+          className={cn(
+            "flex items-center gap-2.5 h-11 border rounded-md px-3 bg-white focus-within:border-zinc-900",
+            invalid ? "border-red-500" : "border-zinc-300",
+          )}
+        >
           <Search className="size-4 text-zinc-500 shrink-0" />
           <input
             ref={inputRef}
@@ -67,6 +77,7 @@ export function PlaceSearch({
             aria-autocomplete="list"
             aria-controls="place-search-listbox"
             aria-expanded={showDropdown}
+            aria-invalid={invalid}
             role="combobox"
           />
         </div>

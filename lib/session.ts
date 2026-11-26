@@ -1,4 +1,6 @@
 import "server-only";
+import { headers } from "next/headers";
+import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth-server";
 
 export type SessionUser = {
@@ -14,4 +16,11 @@ export async function getSessionUser(headers: Headers): Promise<SessionUser | nu
   if (!session) return null;
   const { id, name, email, role } = session.user;
   return { id, name, email, role: role ?? null };
+}
+
+/** The signed-in user for a page; signed-out visitors go to sign-in and come back to callbackURL. */
+export async function requireSignedIn(callbackURL: string): Promise<SessionUser> {
+  const user = await getSessionUser(await headers());
+  if (!user) redirect(`/sign-in?callbackURL=${encodeURIComponent(callbackURL)}`);
+  return user;
 }

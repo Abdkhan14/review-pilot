@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import { findById } from "@/lib/business-repo";
 import { db } from "@/lib/db";
 import { encodeQrSvg } from "@/lib/encode-qr";
-import { buildScanUrl } from "@/lib/scan-url";
+import { scanUrlFor } from "@/lib/scan-url";
 import { todayCount } from "@/lib/handoff";
 import EditBusinessForm from "./EditBusinessForm";
 import QrPanel from "./QrPanel";
@@ -21,7 +21,7 @@ export default async function EditBusinessPage({
   const business = await findById(db, id);
   if (!business) notFound();
 
-  const scanUrl = buildScanUrl(process.env.APP_URL ?? "", business.slug);
+  const scanUrl = scanUrlFor(process.env.APP_URL ?? "", business);
 
   const [svg, handoffRow] = await Promise.all([
     encodeQrSvg(scanUrl),

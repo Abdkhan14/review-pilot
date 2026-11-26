@@ -5,6 +5,7 @@ import { tokens } from "@/app/tokens";
 import { useUpdateBusiness } from "@/hooks/useUpdateBusiness";
 import { Button } from "@/components/ui/button";
 import { Alert } from "@/components/ui/alert";
+import { SHOP_NOTES_HELP, SHOP_NOTES_PLACEHOLDER } from "@/lib/shop-notes";
 
 type Props = {
   id: string;
@@ -104,15 +105,14 @@ export default function EditBusinessForm({
         Shop notes (optional)
       </label>
       <p className="text-xs text-zinc-500 -mt-2">
-        Prose on any line overrides model defaults. Add item groups so the
-        generator assigns a different subject to each review draft.
+        {SHOP_NOTES_HELP}
       </p>
       <textarea
         id="customInstructions"
         value={customInstructions}
         onChange={(e) => setCustomInstructions(e.target.value)}
         rows={8}
-        placeholder={"Always mention the open kitchen.\n\n# Mains\n- Chicken Shawarma Platter\n- Mixed Grill\n\n# Sides\n- Hummus\n- Falafel\n\n# Drinks\n- Mint Tea"}
+        placeholder={SHOP_NOTES_PLACEHOLDER}
         className={`rounded-md border ${tokens.border} bg-white px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-zinc-400 font-mono`}
       />
 

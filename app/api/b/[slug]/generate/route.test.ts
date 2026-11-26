@@ -102,6 +102,13 @@ describe("POST /api/b/[slug]/generate", () => {
     expect(mockGenerateDrafts).not.toHaveBeenCalled();
   });
 
+  it("returns 404 for a business that has an owner", async () => {
+    mockFindBySlug.mockResolvedValue({ ...SAAS_BUSINESS, ownerId: "usr_1" } as any);
+    const res = await makePost("joes-pizza-ab12");
+    expect(res.status).toBe(404);
+    expect(mockGenerateDrafts).not.toHaveBeenCalled();
+  });
+
   it("returns 403 for a BASIC tier business and does not call generateDrafts", async () => {
     mockFindBySlug.mockResolvedValue(BASIC_BUSINESS as any);
     const res = await makePost("joes-pizza-ab12");

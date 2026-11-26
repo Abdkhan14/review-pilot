@@ -1,5 +1,6 @@
 import "server-only";
-import type { PrismaClient } from "@prisma/client";
+import { Prisma, type PrismaClient } from "@prisma/client";
+import { utcDay } from "@/lib/handoff";
 
 /**
  * Atomically increments both the shop's generationsUsed and the session's
@@ -71,4 +72,82 @@ export async function siteGenerationsToday(
     where: { createdAt: { gte: since } },
   });
   return result._sum.generations ?? 0;
+}
+
+/**
+ * Takes one trial generation for a QR, only while it's under the limit.
+ * Returns false when no slot was taken.
+ */
+export async function reserveTrialGeneration(
+  db: PrismaClient,
+  businessId: string,
+  limit: number,
+): Promise<boolean> {
+  const { count } = await db.business.updateMany({
+    where: { id: businessId, trialGenerations: { lt: limit } },
+    data: { trialGenerations: { increment: 1 } },
+  });
+  return count === 1;
+}
+
+/** Gives a trial generation back after a failed attempt; never goes below zero. */
+export async function releaseTrialGeneration(db: PrismaClient, businessId: string): Promise<void> {
+  await db.business.updateMany({
+    where: { id: businessId, trialGenerations: { gt: 0 } },
+    data: { trialGenerations: { decrement: 1 } },
+  });
+}
+
+/** Counts one trial handoff for a QR, only while it's under the limit. */
+export async function recordTrialHandoff(
+  db: PrismaClient,
+  businessId: string,
+  limit: number,
+): Promise<boolean> {
+  const { count } = await db.business.updateMany({
+    where: { id: businessId, trialHandoffs: { lt: limit } },
+    data: { trialHandoffs: { increment: 1 } },
+  });
+  return count === 1;
+}
+
+function isUniqueViolation(err: unknown): boolean {
+  return err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002";
+}
+
+/**
+ * Counts one handoff for today while under the cap (null = no cap); a new UTC
+ * day starts again at 1. Only conditional writes, so racing handoffs can't pass the cap.
+ */
+export async function recordDailyHandoff(
+  db: PrismaClient,
+  businessId: string,
+  cap: number | null,
+  now: Date,
+): Promise<boolean> {
+  const day = utcDay(now);
+  const bumpToday = async () => {
+    const { count } = await db.businessHandoff.updateMany({
+      where: { businessId, day, ...(cap === null ? {} : { count: { lt: cap } }) },
+      data: { count: { increment: 1 } },
+    });
+    return count === 1;
+  };
+
+  if (await bumpToday()) return true;
+
+  const rolledOver = await db.businessHandoff.updateMany({
+    where: { businessId, day: { not: day } },
+    data: { count: 1, day },
+  });
+  if (rolledOver.count === 1) return true;
+
+  try {
+    await db.businessHandoff.create({ data: { businessId, day, count: 1 } });
+    return true;
+  } catch (err) {
+    // Another handoff created today's row first; count against it instead.
+    if (isUniqueViolation(err)) return bumpToday();
+    throw err;
+  }
 }

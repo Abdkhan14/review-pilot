@@ -17,8 +17,8 @@ export function todayCount(row: HandoffRow | null | undefined, now: Date): numbe
 }
 
 /** True when the daily cap has been reached or exceeded. */
-export function isDailyCapped(count: number): boolean {
-  return count >= DAILY_HANDOFF_LIMIT;
+export function isDailyCapped(count: number, limit: number = DAILY_HANDOFF_LIMIT): boolean {
+  return count >= limit;
 }
 
 /** Unix timestamp (ms) of the next UTC midnight after `now`. */

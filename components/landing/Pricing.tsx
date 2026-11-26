@@ -1,4 +1,5 @@
 import { DEFAULT_LIMITS } from "@/lib/settings";
+import { PLAN_PRICES } from "@/lib/plan";
 import { DAILY_HANDOFF_LIMIT } from "@/lib/handoff";
 import { Section } from "./Section";
 import { PricingCard } from "./PricingCard";
@@ -48,8 +49,8 @@ export function Pricing({ selfServe = false }: Props) {
           <Reveal delay={0.1}>
             <PricingCard
               name="Basic"
-              price="$20"
-              priceSuffix="once"
+              price={PLAN_PRICES.basic.price}
+              priceSuffix={PLAN_PRICES.basic.period}
               priceNote="Yours for life"
               blurb="Everything you need to collect reviews on autopilot."
               features={[
@@ -72,8 +73,8 @@ export function Pricing({ selfServe = false }: Props) {
           <Reveal delay={0.2}>
             <PricingCard
               name="Assisted"
-              price="$5"
-              priceSuffix="/ month"
+              price={PLAN_PRICES.assisted.price}
+              priceSuffix={PLAN_PRICES.assisted.period}
               priceNote="Cancel any time"
               blurb="We handle the drafts. Your customers just post."
               features={[

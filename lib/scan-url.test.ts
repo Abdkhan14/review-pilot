@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { buildScanUrl, buildDemoUrl } from "./scan-url";
+import { buildScanUrl, buildDemoUrl, buildQrUrl, scanUrlFor } from "./scan-url";
 
 describe("buildScanUrl", () => {
   it("combines origin and slug into a /b/ URL", () => {
@@ -42,5 +42,24 @@ describe("buildDemoUrl", () => {
 
   it("throws when id is empty", () => {
     expect(() => buildDemoUrl("https://example.com", "")).toThrow(/id/i);
+  });
+});
+
+describe("buildQrUrl", () => {
+  it("combines origin and slug into a /q/ URL", () => {
+    expect(buildQrUrl("https://example.com/", "joes-pizza-ab12")).toBe(
+      "https://example.com/q/joes-pizza-ab12",
+    );
+  });
+});
+
+describe("scanUrlFor", () => {
+  it("uses /q/ for an owned QR and /b/ for one made in admin", () => {
+    expect(scanUrlFor("https://example.com", { slug: "joes-ab12", ownerId: "usr_1" })).toBe(
+      "https://example.com/q/joes-ab12",
+    );
+    expect(scanUrlFor("https://example.com", { slug: "sunrise-1a2b", ownerId: null })).toBe(
+      "https://example.com/b/sunrise-1a2b",
+    );
   });
 });

@@ -1,4 +1,4 @@
-import type { PrismaClient } from "@prisma/client";
+import type { Business, PrismaClient } from "@prisma/client";
 import { DAILY_HANDOFF_LIMIT } from "@/lib/handoff";
 
 export type AppLimits = {
@@ -33,4 +33,16 @@ export async function getLimits(db: PrismaClient): Promise<AppLimits> {
       Number.isFinite(overrides[key]) ? overrides[key] : DEFAULT_LIMITS[key],
     ]),
   ) as AppLimits;
+}
+
+/**
+ * A QR's daily handoff cap: its own override, else the global setting.
+ * Null means the cap is turned off for this QR.
+ */
+export function handoffCap(
+  business: Pick<Business, "dailyHandoffLimit" | "limitsDisabled">,
+  limits: AppLimits,
+): number | null {
+  if (business.limitsDisabled) return null;
+  return business.dailyHandoffLimit ?? limits["assisted.dailyHandoffLimit"];
 }
