@@ -100,3 +100,14 @@ export async function findOwnedBySlug(db: PrismaClient, slug: string) {
     include: { handoff: true },
   });
 }
+
+export type UpdateQrInput = {
+  customInstructions?: string | null;
+  writeReviewUrl?: string;
+  details?: string; // JSON string of normalized PlaceSnapshot
+  detailsFetchedAt?: Date;
+};
+
+export async function updateQr(db: PrismaClient, id: string, input: UpdateQrInput) {
+  return db.business.update({ where: { id }, data: input });
+}
