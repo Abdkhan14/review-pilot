@@ -5,6 +5,8 @@ import { rmSync } from "fs";
 import {
   reserveGeneration,
   releaseGeneration,
+  reserveTrialGeneration,
+  releaseTrialGeneration,
   visitorSessionsToday,
   siteGenerationsToday,
 } from "./usage";
@@ -162,5 +164,51 @@ describe("siteGenerationsToday", () => {
 
     const total = await siteGenerationsToday(db, now);
     expect(total).toBeGreaterThanOrEqual(5);
+  });
+});
+
+async function seedTrialQr(id: string, trialGenerations: number) {
+  return db.business.create({
+    data: {
+      id,
+      slug: `${id}-slug`,
+      tier: "OWNED",
+      name: "Joe's Pizza",
+      placeId: "ChIJ_joes",
+      ownerId: "usr_maria",
+      trialStartedAt: new Date(),
+      trialGenerations,
+    },
+  });
+}
+
+async function trialGenerationsOf(id: string) {
+  return (await db.business.findUniqueOrThrow({ where: { id } })).trialGenerations;
+}
+
+describe("reserveTrialGeneration", () => {
+  it("takes a slot while under the limit", async () => {
+    await seedTrialQr("trial-r1", 4);
+    expect(await reserveTrialGeneration(db, "trial-r1", 5)).toBe(true);
+    expect(await trialGenerationsOf("trial-r1")).toBe(5);
+  });
+
+  it("lets only one of two simultaneous requests take the last slot", async () => {
+    await seedTrialQr("trial-r2", 4);
+    const results = await Promise.all([
+      reserveTrialGeneration(db, "trial-r2", 5),
+      reserveTrialGeneration(db, "trial-r2", 5),
+    ]);
+    expect(results.filter(Boolean)).toHaveLength(1);
+    expect(await trialGenerationsOf("trial-r2")).toBe(5);
+  });
+});
+
+describe("releaseTrialGeneration", () => {
+  it("gives a slot back but never goes below zero", async () => {
+    await seedTrialQr("trial-l1", 1);
+    await releaseTrialGeneration(db, "trial-l1");
+    await releaseTrialGeneration(db, "trial-l1");
+    expect(await trialGenerationsOf("trial-l1")).toBe(0);
   });
 });

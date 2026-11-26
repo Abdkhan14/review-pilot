@@ -72,3 +72,27 @@ export async function siteGenerationsToday(
   });
   return result._sum.generations ?? 0;
 }
+
+/**
+ * Takes one trial generation for a QR, only while it's under the limit.
+ * Returns false when no slot was taken.
+ */
+export async function reserveTrialGeneration(
+  db: PrismaClient,
+  businessId: string,
+  limit: number,
+): Promise<boolean> {
+  const { count } = await db.business.updateMany({
+    where: { id: businessId, trialGenerations: { lt: limit } },
+    data: { trialGenerations: { increment: 1 } },
+  });
+  return count === 1;
+}
+
+/** Gives a trial generation back after a failed attempt; never goes below zero. */
+export async function releaseTrialGeneration(db: PrismaClient, businessId: string): Promise<void> {
+  await db.business.updateMany({
+    where: { id: businessId, trialGenerations: { gt: 0 } },
+    data: { trialGenerations: { decrement: 1 } },
+  });
+}
